@@ -249,18 +249,22 @@ User → POST /login/signIn {username, password}
 
 Klasifikasikan aset OJS berdasarkan CIA Triad:
 
-| Aset | Confidentiality | Integrity | Availability | Nilai Kritis |
-|---|---|---|---|---|
-| Data login admin | Tinggi | Tinggi | Sedang | **Kritis** |
-| Naskah unpublished | Tinggi | Tinggi | Sedang | **Kritis** |
-| Data reviewer | Sedang | Tinggi | Sedang | **Tinggi** |
-| Artikel published | Rendah | Tinggi | Tinggi | **Tinggi** |
-| File konfigurasi (config.inc.php) | Tinggi | Tinggi | Sedang | **Kritis** |
-| Database credentials | Tinggi | Tinggi | Rendah | **Kritis** |
-| Log file server | Sedang | Sedang | Sedang | **Sedang** |
-
+| # | Aset | Confidentiality | Integrity | Availability | Nilai Kritis | Ancaman Utama |
+|---|---|:---:|:---:|:---:|:---:|---|
+| 1 | Data login admin | Tinggi | Tinggi | Sedang | **Kritis** | Credential stuffing, brute force, phishing |
+| 2 | Naskah unpublished | Tinggi | Tinggi | Sedang | **Kritis** | Unauthorized access, data exfiltration |
+| 3 | File konfigurasi (`config.inc.php`) | Tinggi | Tinggi | Sedang | **Kritis** | Path traversal, directory listing, LFI |
+| 4 | Database credentials | Tinggi | Tinggi | Tinggi | **Kritis** | Credential exposure, config file leak |
+| 5 | Session token / cookie pengguna | Tinggi | Tinggi | Sedang | **Kritis** | Session hijacking, XSS, CSRF |
+| 6 | Backup files (`.tar.gz`, `.sql`) | Tinggi | Tinggi | Sedang | **Kritis** | Exposed backup di public directory |
+| 7 | Data reviewer | Sedang | Tinggi | Sedang | **Tinggi** | IDOR, unauthorized disclosure |
+| 8 | Artikel published | Rendah | Tinggi | Tinggi | **Tinggi** | Content tampering, defacement, reputational damage |
+| 9 | Email SMTP credentials | Tinggi | Sedang | Sedang | **Tinggi** | Email spoofing, password reset abuse |
+| 10 | Plugin / theme files | Rendah | Tinggi | Tinggi | **Tinggi** | Webshell injection, RCE via malicious plugin |
+| 11 | Upload directory (`/files/`) | Sedang | Tinggi | Tinggi | **Tinggi** | Unrestricted file upload, path traversal |
+| 12 | Log file server | Sedang | Tinggi | Sedang | **Tinggi** | Log tampering, evidence destruction, forensic evasion |
+ 
 ---
-
 ## 6. Threat Model — STRIDE
 
 Gunakan kerangka **STRIDE** untuk memetakan ancaman:
