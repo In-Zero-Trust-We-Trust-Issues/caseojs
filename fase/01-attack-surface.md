@@ -152,45 +152,34 @@ Berikut adalah entry point yang harus diidentifikasi dan didokumentasikan tim:
 
 | No | URL / Endpoint | Method | Deskripsi | Risiko Potensial |
 |---|---|---|---|---|
-| A1 | `/index.php/index/login` | GET/POST | Form login utama | Brute force, credential stuffing |
-| A2 | `/index.php/index/login/signIn` | POST | Proses autentikasi | SQL Injection, auth bypass |
-| A3 | `/index.php/index/login/lostPassword` | POST | Reset password | Account takeover |
-| A4 | `/index.php/index/register` | GET/POST | Registrasi user baru | Mass registration, spam |
+| A1 | `/http://10.34.100.179/ojs/journals/` | GET | Area pengelolaan jurnal yang berhubungan dengan login dan session pengguna | Authentication bypass, session fixation |
 
 #### B. File Upload
 
 | No | URL / Endpoint | Method | Deskripsi | Risiko Potensial |
 |---|---|---|---|---|
-| B1 | `/index.php/$journal/submission/wizard` | POST | Submit naskah (multi-step) | Malicious file upload |
-| B2 | `/index.php/$journal/api/v1/submissions` | POST | REST API submit | Unrestricted file upload |
-| B3 | `/index.php/index/admin/settings` | POST | Upload logo/gambar | Path traversal |
-| B4 | Plugin manager file upload | POST | Plugin `.tar.gz` | Remote Code Execution |
+| B1 | `http://10.34.100.179/ojs/plugins/` | GET | Direktori modul plugin OJS yang berisi ekstensi sistem | Vulnerable plugin exploitation, kemungkinan upload malicious module |
+| B2 | `http://10.34.100.179/ojs/public/` | GET | Direktori penyimpanan file publik seperti upload jurnal, gambar, dan asset | File disclosure, upload webshell, path traversal |
 
 #### C. User Input / Reflected Data
 
 | No | URL / Endpoint | Method | Deskripsi | Risiko Potensial |
 |---|---|---|---|---|
-| C1 | `/index.php/$journal/search` | GET | Pencarian artikel | Reflected XSS |
-| C2 | `/index.php/$journal/issue/view/$id` | GET | Halaman issue | XSS via metadata |
-| C3 | `/index.php/$journal/article/view/$id` | GET | Halaman artikel | XSS via abstract |
-| C4 | Form profil user | POST | Edit profil | Stored XSS, HTML injection |
+| C1 | `http://10.34.100.179/ojs/` | GET | Halaman utama aplikasi Open Journal Systems, menjadi front entry seluruh navigasi user dan routing aplikasi | User input reflection, session hijacking, fingerprinting versi OJS |
+| C2 | `http://10.34.100.179/ojs/index.php` | GET | Front controller OJS yang menangani parameter routing seperti page, op, dan path | Parameter tampering, XSS, injection melalui query parameter |
 
 #### D. REST API
 
 | No | Endpoint | Method | Deskripsi | Risiko Potensial |
 |---|---|---|---|---|
-| D1 | `/api/v1/users` | GET | Daftar user | IDOR, information disclosure |
-| D2 | `/api/v1/submissions` | GET/POST | Manajemen submission | IDOR |
-| D3 | `/api/v1/contexts` | GET | Daftar jurnal | Information disclosure |
+| D1 | `http://10.34.100.179/ojs/api/` | GET | Endpoint REST API yang menyediakan komunikasi data backend dan frontend | API enumeration, unauthorized access, data exposure |
 
 #### E. Admin Panel
 
 | No | URL / Endpoint | Method | Deskripsi | Risiko Potensial |
 |---|---|---|---|---|
-| E1 | `/index.php/index/admin` | GET | Dashboard admin | Admin access |
-| E2 | `/index.php/index/admin/plugins` | GET/POST | Manajemen plugin | RCE via malicious plugin |
-| E3 | `/index.php/index/admin/siteSettings` | POST | Pengaturan situs | SSRF, open redirect |
-| E4 | `/index.php/index/admin/users` | GET/POST | Manajemen user | Privilege escalation |
+| E1 | `http://10.34.100.179/ojs/tools/` | GET | Endpoint tools administratif untuk maintenance atau utilitas sistem | Privilege escalation, admin function abuse |
+| E2 | `http://10.34.100.179/ojs/site/` | GET | Endpoint konfigurasi site dan pengaturan global aplikasi | Configuration exposure, admin misconfiguration |
 
 ---
 
