@@ -7,6 +7,23 @@ Setelah pertemuan ini, mahasiswa mampu:
 3. Membuat attack surface diagram menggunakan model ancaman (threat model)
 4. Mengklasifikasikan aset berdasarkan tingkat kritikal
 
+**Nama Tim** : In Zero Trust, We Trust (Issues)  
+**Kelas**    : DevSecOps TIF A  
+
+## Anggota Tim
+
+| No | Nama                   | NIM           |
+|----|------------------------|---------------|
+| 1  | Yusrizal Harits Firdaus | 235150207111011 |
+| 2  | Ananda Fifadlika        | 235150207111045 |
+| 3  | Nicolas Quinn B         | 235150207111053 |
+| 4  | Ahmad Adzka Najhan      | 235150200111037 |
+
+## Repository
+
+GitHub:  
+https://github.com/In-Zero-Trust-We-Trust-Issues/caseojs/edit/main/fase/01-attack-surface.md
+
 ---
 
 ## 1. Konsep Attack Surface
