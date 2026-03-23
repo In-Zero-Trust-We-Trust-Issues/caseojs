@@ -224,6 +224,8 @@ User → POST /login/signIn {username, password}
           Cookie SESSION dikirim
 ```
 
+<img width="477" height="460" alt="Auth drawio" src="https://github.com/user-attachments/assets/aed08989-90b9-430a-9f63-00d0496e33bc" />
+
 ---
 
 ## 5. Identifikasi Aset Kritis
