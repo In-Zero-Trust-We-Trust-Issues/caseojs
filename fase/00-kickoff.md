@@ -180,6 +180,8 @@ Ikuti wizard instalasi dengan data berikut:
 # Cek versi OJS lewat terminal
 curl -s http://localhost/ojs/index.php/index | grep -i "ojs\|version"
 
+<img width="1919" height="470" alt="image" src="https://github.com/user-attachments/assets/442fc1d8-5bff-4fea-9164-9ebc0c94f4a9" />
+
 # Cek log Apache
 sudo tail -f /var/log/apache2/ojs_access.log
 ```
