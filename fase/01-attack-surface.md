@@ -255,18 +255,104 @@ Klasifikasikan aset OJS berdasarkan CIA Triad:
  
 ---
 ## 6. Threat Model — STRIDE
-
-Gunakan kerangka **STRIDE** untuk memetakan ancaman:
-
-| Threat | Singkatan | Contoh pada OJS | Entry Point |
-|---|---|---|---|
-| **S**poofing | Pemalsuan identitas | Login dengan akun orang lain | A1, A2 |
-| **T**ampering | Modifikasi data | Edit metadata artikel via API | D2 |
-| **R**epudiation | Penyangkalan tindakan | Hapus log aktivitas | E3 |
-| **I**nformation Disclosure | Kebocoran info | Ekspos path file, error verbose | semua |
-| **D**enial of Service | Gangguan layanan | Upload file besar berulang | B1-B4 |
-| **E**levation of Privilege | Eskalasi hak akses | Author mengakses fitur Editor | D1, E4 |
-
+ 
+### S — Spoofing (Pemalsuan Identitas)
+ 
+> Attacker berpura-pura menjadi entitas lain (user, admin, sistem) untuk mendapatkan akses tidak sah.
+ 
+| ID | Skenario Ancaman | Entry Point | Aset Terdampak | Likelihood | Impact |
+|---|---|---|---|:---:|:---:|
+| S1 | Brute force login admin menggunakan wordlist akun jurnal akademik | A1 | Data login admin | Tinggi | Kritis |
+| S2 | Session fixation — attacker menetapkan session ID sebelum korban login | A1 | Session token | Sedang | Kritis |
+| S3 | Cookie theft via XSS — cookie session dicuri lalu digunakan ulang | C1, C2 | Session token | Sedang | Kritis |
+| S4 | API request dipalsukan menggunakan token yang bocor atau kadaluarsa | D1 | Data reviewer, naskah | Sedang | Tinggi |
+| S5 | Attacker menyamar sebagai admin melalui manipulasi parameter `role` di query string | C2 | Data login admin | Rendah | Kritis |
+ 
+---
+ 
+### T — Tampering (Modifikasi Data Tidak Sah)
+ 
+> Attacker memodifikasi data dalam transit atau penyimpanan tanpa otorisasi.
+ 
+| ID | Skenario Ancaman | Entry Point | Aset Terdampak | Likelihood | Impact |
+|---|---|---|:---:|:---:|:---:|
+| T1 | SQL Injection melalui parameter `page`, `op`, atau `path` di front controller | C2 | Database, naskah unpublished | Tinggi | Kritis |
+| T2 | Modifikasi metadata artikel (judul, author, DOI) via REST API tanpa validasi otorisasi | D1 | Artikel published | Sedang | Tinggi |
+| T3 | Upload plugin berbahaya yang memodifikasi file inti OJS (`config.inc.php`) | B1 | File konfigurasi | Rendah | Kritis |
+| T4 | Path traversal pada direktori public untuk menimpa file yang sudah ada | B2 | Upload directory `/files/` | Sedang | Tinggi |
+| T5 | Manipulasi parameter form pada halaman submission untuk mengubah status naskah | C2 | Naskah unpublished | Sedang | Kritis |
+| T6 | Modifikasi log file melalui admin tools untuk menghapus jejak aktivitas | E1 | Log file server | Rendah | Tinggi |
+ 
+---
+ 
+### R — Repudiation (Penyangkalan Tindakan)
+ 
+> Attacker atau pengguna menyangkal telah melakukan suatu tindakan karena tidak ada bukti yang cukup.
+ 
+| ID | Skenario Ancaman | Entry Point | Aset Terdampak | Likelihood | Impact |
+|---|---|---|:---:|:---:|:---:|
+| R1 | Penghapusan atau modifikasi log server setelah intrusi berhasil | E1 | Log file server | Sedang | Tinggi |
+| R2 | Admin menyangkal perubahan konfigurasi karena tidak ada audit trail | E2 | File konfigurasi | Sedang | Tinggi |
+| R3 | Tidak ada log aktivitas API — tindakan lewat REST API tidak tercatat | D1 | Naskah, data reviewer | Tinggi | Tinggi |
+| R4 | Upload file berbahaya tanpa pencatatan siapa yang mengupload dan kapan | B1, B2 | Upload directory | Sedang | Sedang |
+ 
+---
+ 
+### I — Information Disclosure (Kebocoran Informasi)
+ 
+> Informasi sensitif terekspos ke pihak yang tidak berhak, baik secara sengaja maupun tidak.
+ 
+| ID | Skenario Ancaman | Entry Point | Aset Terdampak | Likelihood | Impact |
+|---|---|---|:---:|:---:|:---:|
+| I1 | Verbose error message menampilkan stack trace, path absolut, atau versi OJS | C1, C2 | File konfigurasi | Tinggi | Tinggi |
+| I2 | Directory listing aktif pada `/public/` menampilkan seluruh file yang diupload | B2 | Upload directory | Tinggi | Tinggi |
+| I3 | API endpoint mengembalikan data reviewer atau naskah unpublished tanpa autentikasi | D1 | Data reviewer, naskah | Sedang | Kritis |
+| I4 | File backup (`.sql`, `.tar.gz`) tersimpan di direktori publik dan dapat diakses langsung | B2 | Backup files | Sedang | Kritis |
+| I5 | Fingerprinting versi OJS melalui response header, meta tag, atau path default | C1 | Semua aset | Tinggi | Sedang |
+| I6 | `config.inc.php` dapat diakses jika konfigurasi server tidak memblokir akses file `.php` di luar webroot | E2 | Database credentials | Rendah | Kritis |
+ 
+---
+ 
+### D — Denial of Service (Gangguan Ketersediaan Layanan)
+ 
+> Attacker membuat sistem tidak tersedia bagi pengguna yang sah.
+ 
+| ID | Skenario Ancaman | Entry Point | Aset Terdampak | Likelihood | Impact |
+|---|---|---|:---:|:---:|:---:|
+| D1 | Upload file berukuran sangat besar secara berulang untuk menghabiskan disk space | B1, B2 | Upload directory | Sedang | Tinggi |
+| D2 | Flood request ke `index.php` dengan parameter berbeda untuk exhausting server resources | C2 | Artikel published | Sedang | Tinggi |
+| D3 | Flood request unauthenticated ke REST API endpoint | D1 | Semua aset | Sedang | Tinggi |
+| D4 | Submission naskah massal secara otomatis (bot) untuk membebani sistem review | C2 | Naskah unpublished | Rendah | Sedang |
+| D5 | Instalasi plugin yang mengandung infinite loop atau memory leak | B1 | Seluruh sistem OJS | Rendah | Kritis |
+ 
+---
+ 
+### E — Elevation of Privilege (Eskalasi Hak Akses)
+ 
+> Attacker mendapatkan hak akses yang lebih tinggi dari yang seharusnya dimiliki.
+ 
+| ID | Skenario Ancaman | Entry Point | Aset Terdampak | Likelihood | Impact |
+|---|---|---|:---:|:---:|:---:|
+| E1 | Author mengakses fitur Editor/Admin dengan memanipulasi parameter `role` atau `page` | C2 | Naskah unpublished, data reviewer | Sedang | Kritis |
+| E2 | Eksploitasi plugin yang memiliki kerentanan privilege escalation bawaan | B1 | Seluruh sistem | Rendah | Kritis |
+| E3 | Akses endpoint `/tools/` atau `/site/` tanpa pemeriksaan sesi admin yang valid | E1, E2 | File konfigurasi | Sedang | Kritis |
+| E4 | Manipulasi JWT / token API untuk mengubah klaim `role` menjadi `admin` | D1 | Semua aset | Rendah | Kritis |
+| E5 | Webshell yang diupload melalui `/public/` atau `/plugins/` memberikan akses OS-level | B1, B2 | Seluruh sistem | Rendah | Kritis |
+  
+---
+ 
+## Ringkasan Risk Matrix STRIDE
+ 
+| Kategori | Jumlah Skenario | Entry Point Paling Berisiko | Aset Paling Terdampak |
+|---|:---:|---|---|
+| Spoofing | 5 | A1, C2 | Session token, Data login admin |
+| Tampering | 6 | C2, D1 | Database, Naskah unpublished |
+| Repudiation | 4 | D1, E1 | Log file, Audit trail API |
+| Information Disclosure | 6 | B2, D1 | Backup files, Database credentials |
+| Denial of Service | 5 | B1, B2, C2 | Upload directory, Sistem OJS |
+| Elevation of Privilege | 5 | B1, B2, E1 | File konfigurasi, Seluruh sistem |
+| **Total** | **31** | | |
+ 
 ---
 
 ## 7. Deliverable Pertemuan 2
