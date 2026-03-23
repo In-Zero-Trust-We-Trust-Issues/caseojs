@@ -20,10 +20,10 @@ Karena popularitasnya, OJS menjadi target menarik bagi penyerang. Beberapa versi
 | CVE-2020-28112 | < 3.2.1-2 | Stored XSS | High |
 | CVE-2021-27188 | ≤ 3.3.0-6 | Server-Side Request Forgery (SSRF) | High |
 | CVE-2022-24822 | ≤ 3.3.0-8 | Open Redirect + XSS | Medium |
-| CVE-2023-28131 | < 3.3.0-12 | XSS via Editor | High |
-| CVE-2020-12432 | 2.x | SQL Injection | Critical |
 
 > **Catatan Etika:** Seluruh pengujian dilakukan di lingkungan yang telah disetujui (VPS milik kelas). Dilarang keras menguji sistem di luar scope yang ditetapkan.
+
+adapun dalam project ini, kami menggunakan OJS versi 3.3.0.8
 
 ---
 
@@ -38,22 +38,25 @@ Setiap kelompok terdiri dari **4–5 mahasiswa** dengan pembagian peran sebagai 
 | **Security Engineer (SAST)** | 1 | Analisis source code statis (Semgrep, phpcs) |
 | **Documentation & Reporting** | 1 | Menulis laporan, risk register, rekomendasi mitigasi |
 
-### Template Daftar Tim
+# Template Daftar Tim
 
-```
-Nama Tim       : in Zero Trust, We Trust (Issues)
-Kelas          : DevSecOps TIF A
+**Nama Tim** : In Zero Trust, We Trust (Issues)  
+**Kelas**    : DevSecOps TIF A  
 
-| No | Nama | NIM | Peran |
-|----|------|-----|-------|
-| 1  |      |     |       |
-| 2  |      |     |       |
-| 3  |      |     |       |
-| 4  |      |     |       |
-| 5  |      |     |       |
+## Anggota Tim
 
-Repositori Tim (GitHub) : https://github.com/In-Zero-Trust-We-Trust-Issues/caseojs/blob/main/fase/00-kickoff.md
-```
+| No | Nama                   | NIM           | Peran                          |
+|----|------------------------|---------------|--------------------------------|
+| 1  | Yusrizal Harits Firdaus | 235150207111011 | Project Lead / Scrum Master    |
+| 2  | Ananda Fifadlika        | 235150207111045 | Security Engineer (DAST)       |
+| 3  | Nicolas Quinn B         | 235150207111053 | Security Engineer (SAST)       |
+| 4  | Ahmad Adzka Najhan      | 235150200111037 | Documentation & Reporting      |
+
+## Repository
+
+GitHub:  
+https://github.com/In-Zero-Trust-We-Trust-Issues/caseojs/blob/main/fase/00-kickoff.md
+
 
 ---
 
@@ -181,13 +184,17 @@ Ikuti wizard instalasi dengan data berikut:
 curl -s http://localhost/ojs/index.php/index | grep -i "ojs\|version"
 
 ```
-
 <img width="1919" height="470" alt="image" src="https://github.com/user-attachments/assets/442fc1d8-5bff-4fea-9164-9ebc0c94f4a9" />
 
+
+
 ```bash
+
+
 # Cek log Apache
 sudo tail -f /var/log/apache2/ojs_access.log
 ```
+<img width="1919" height="440" alt="image" src="https://github.com/user-attachments/assets/60fe8261-1a19-4ddd-81e1-147007f13ab1" />
 
 ---
 
