@@ -201,6 +201,9 @@ MySQL: INSERT INTO submission_files ...
 http://<IP-VPS>/ojs/files/... ← [RISIKO: Direct Object Reference]
 ```
 
+<img width="452" height="511" alt="Submission drawio" src="https://github.com/user-attachments/assets/d9406030-3723-4ad3-bda4-704fb1db5b77" />
+
+
 ### 4.2 Alur Autentikasi
 
 ```
