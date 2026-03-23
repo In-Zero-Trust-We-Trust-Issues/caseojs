@@ -41,7 +41,7 @@ Setiap kelompok terdiri dari **4–5 mahasiswa** dengan pembagian peran sebagai 
 ### Template Daftar Tim
 
 ```
-Nama Tim       : 
+Nama Tim       : in Zero Trust, We Trust (Issues)
 Kelas          : DevSecOps TIF A
 
 | No | Nama | NIM | Peran |
