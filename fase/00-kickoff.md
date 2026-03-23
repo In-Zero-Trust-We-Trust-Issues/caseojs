@@ -216,6 +216,11 @@ sudo tail -f /var/log/apache2/ojs_access.log
 3. Jelaskan perbedaan antara **vulnerability assessment** dan **penetration testing**!
 4. Mengapa OJS versi lama masih banyak dipakai di institusi akademik? Apa implikasinya terhadap keamanan?
 
+## 7. Jawaban
+1. Agar ketika melakukan pengujian memiliki batasan yang jelas mengenai sistem, jaringan, aplikasi, atau data apa saja yang boleh diuji. nahh dengan adanya scope membantu mencegah aktivitas pengujian yang tidak disengaja , sehingga mengurangi risiko gangguan layanan, kerusakan sistem, atau pelanggaran hukum nantinya. adapun jugaa dengan kita menentukan scope dapat membantu kita untuk memastikan tujuan pengujian lebih terarah
+2. yakni kesalahpahaman antara tim penguji dan pemilik sistem terkait metode, waktu, serta batasan pengujian yang diperbolehkan sehingga dapat menyebabkan gangguan layanan, kerusakan sistem, atau bahkan hilangnya data karena tidak ada kesepakatan mengenai teknik pengujian yang aman
+3. Vulnerability assessment bertujuan untuk mengidentifikasi dan mendata kelemahan keamanan pada sistem, jaringan, atau aplikasi secara luas menggunakan tools otomatis maupun analisis konfigurasi. Sedangkan, penetration testing bertujuan untuk mensimulasikan serangan nyata dengan mencoba mengeksploitasi kelemahan tersebut guna mengetahui dampak sebenarnya terhadap sistem. Sehingga dapat dikatakan bahwa  vulnerability assessment fokus pada “menemukan potensi celah”, sedangkan penetration testing fokus pada “membuktikan apakah celah tersebut benar-benar bisa dimanfaatkan oleh penyerang.”
+4. OJS versi lama masih banyak dipakai di institusi akademik karena faktor keterbatasan sumber daya seperti tenaga teknis, anggaran, dan waktu untuk melakukan proses upgrade serta migrasi data tidah hanya itu beberapa institusi memiliki proses birokrasi yang panjang sehingga pembaruan perangkat lunak tidak dapat dilakukan dengan cepat. Lalu untuk implikasinya terhadap keamanan menurut kami cukup serius karena versi lama biasanya memiliki kerentanan yang sudah diketahui publik dan tidak lagi mendapat patch atau dukungan resmi sehingga membuat sistem lebih rentan terhadap serangan seperti defacement, pencurian data, atau penyusupan malware yang dapat mengganggu integritas dan ketersediaan layanan jurnal
 ---
 
 ## Referensi
