@@ -52,7 +52,7 @@ Kelas          : DevSecOps TIF A
 | 4  |      |     |       |
 | 5  |      |     |       |
 
-Repositori Tim (GitHub) : ___________________________
+Repositori Tim (GitHub) : https://github.com/In-Zero-Trust-We-Trust-Issues/caseojs/blob/main/fase/00-kickoff.md
 ```
 
 ---
