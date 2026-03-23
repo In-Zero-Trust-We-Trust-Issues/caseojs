@@ -28,6 +28,7 @@ https://github.com/In-Zero-Trust-We-Trust-Issues/caseojs/edit/main/fase/01-attac
 
 ## 1. Konsep Attack Surface
 
+
 **Attack surface** adalah totalitas dari semua titik (surface) di mana penyerang yang tidak berwenang dapat mencoba memasukkan data atau mengekstrak data dari sistem.
 
 Komponen attack surface terdiri dari:
@@ -44,6 +45,9 @@ Attack Surface = Entry Points + Data Stores + Trust Boundaries
 | **Software Attack Surface** | Form login, upload file, REST API |
 | **Human Attack Surface** | Akun admin default, social engineering |
 | **Third-party Attack Surface** | Plugin/tema pihak ketiga, library PHP |
+
+### Diagram Attack Surface + Endpoint
+<img width="671" height="846" alt="surface attack diagram drawio" src="https://github.com/user-attachments/assets/bed9d4d4-576b-4a5a-b416-c7edea47993a" />
 
 ---
 
