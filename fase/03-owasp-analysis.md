@@ -424,28 +424,8 @@ Risk Score = Likelihood × Impact
 
 Pemetaan semua 18 temuan ke dalam matriks 5×5 (Likelihood × Business Impact):
 
-```
-                              LIKELIHOOD
-              VL (1)    L (2)    M (3)    H (4)    VH (5)
-            +----------+---------+---------+---------+----------+
-CRIT  (5)   |          | VUL-003 | VUL-007 |         |          |
-            |          | VUL-006 |         |         |          |
-            +----------+---------+---------+---------+----------+
-HIGH  (4)   |          |         | VUL-008 | VUL-001 |          |
-            |          |         |         | VUL-002 |          |
-            +----------+---------+---------+---------+----------+
-MED   (3)   |          |         | VUL-005 | VUL-010 | VUL-011  |
-            |          |         | VUL-009 | VUL-014 | VUL-016  |
-            +----------+---------+---------+---------+----------+
-LOW   (2)   |          |         |         |         | VUL-012  |
-            |          |         |         |         | VUL-013  |
-            |          |         |         |         | VUL-015  |
-            |          |         |         |         | VUL-017  |
-            +----------+---------+---------+---------+----------+
-INFO  (1)   |          |         |         |         | VUL-018  |
-            +----------+---------+---------+---------+----------+
-              VL (1)    L (2)    M (3)    H (4)    VH (5)
-```
+<img width="475" height="384" alt="Desain tanpa judul" src="https://github.com/user-attachments/assets/cd4c5e5a-e302-4ff8-8df4-d077d217c8e5" />
+
 
 Catatan:
 Beberapa kerentanan seperti VUL-003 dan VUL-006 tetap diklasifikasikan 
