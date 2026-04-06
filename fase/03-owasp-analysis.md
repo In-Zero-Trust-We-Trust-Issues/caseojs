@@ -16,14 +16,14 @@ OWASP Top 10 adalah daftar 10 risiko keamanan aplikasi web yang paling kritis, d
 | Kode | Kategori | Relevansi pada OJS |
 |---|---|---|
 | **A01** | Broken Access Control | Path Traversal pada 33 grid endpoint, IDOR pada SubmissionFileManager, role bypass ASSISTANT/SUB_EDITOR |
-| **A02** | Cryptographic Failures | Password hashing lemah, transmisi data sensitif tanpa HTTPS |
+| **A02** | Cryptographic Failures | Tidak ditemukan bukti terkait cryptographic failure dalam scope assessment |
 | **A03** | Injection | SQL Injection latent di DAO.inc.php, XSS via PKPTemplateManager tanpa sanitasi |
 | **A04** | Insecure Design | File upload tanpa validasi MIME/ekstensi (RCE risk), null dereference DoS di PdfJsViewerPlugin |
 | **A05** | Security Misconfiguration | phpinfo() exposed, directory indexing terbuka, cookie tanpa HttpOnly/SameSite, CSP tidak ada, CORS permisif, server version leak |
 | **A06** | Vulnerable & Outdated Components | jQuery/Plupload versi lama dengan CVE terdokumentasi |
-| **A07** | Identification & Authentication Failures | Tidak ada rate limiting login, session management lemah |
+| **A07** | Identification & Authentication Failures | Tidak ditemukan bukti terkait authentication failure (misalnya brute-force protection) dalam pengujian |
 | **A08** | Software & Data Integrity Failures | `unserialize()` tanpa validasi di DAO.inc.php — PHP Object Injection risk |
-| **A09** | Security Logging & Monitoring Failures | Log tidak memadai, tidak ada alerting |
+| **A09** | Security Logging & Monitoring Failures | Tidak ditemukan bukti terkait logging dan monitoring dalam assessment ini |
 | **A10** | Server-Side Request Forgery (SSRF) | CVE-2021-27188 pada journal stylesheet URL — **terkonfirmasi via webhook.site** |
 
 ---
@@ -42,7 +42,7 @@ Setiap temuan dari Pertemuan 3 dipetakan ke:
 | ID | Deskripsi | OWASP | CWE | CVE | Sumber |
 |---|---|---|---|---|---|
 | VUL-001 | SSRF via journal stylesheet URL — Journal Manager dapat mengarahkan server untuk fetch URL arbitrer, termasuk internal service dan cloud metadata endpoint | **A10** | CWE-918 | CVE-2021-27188 | DAST (Manual) |
-| VUL-002 | Path Traversal pada 33 grid endpoint — parameter `stageId`, `submissionId`, `selectedFiles[0]`, dll tidak divalidasi, memungkinkan traversal di luar direktori yang diizinkan | **A01** | CWE-22 | — | DAST (ZAP) |
+| VUL-002 | Path Traversal pada 33 grid endpoint — parameter `stageId`, `submissionId`, `selectedFiles[0]`, dll tidak divalidasi, mengindikasikan potensi traversal di luar direktori yang diizinkan berdasarkan hasil scanning OWASP ZAP | **A01** | CWE-22 | — | DAST (ZAP) |
 | VUL-003 | SQL Injection potential — interpolasi `$tableName` dan `$idFieldName` langsung ke SQL query di `DAO.inc.php` tanpa parameterisasi, membuka risiko SQLi dan operasi destruktif (DELETE) | **A03** | CWE-89 | — | SAST (Manual) |
 | VUL-004 | SQL Injection potential — `PKPWorkflowHandler.inc.php` baris 405 dan `PKPAuthorDashboardHandler.inc.php` baris 351 menggunakan pola query tidak aman yang terdeteksi PHPCS | **A03** | CWE-89 | — | SAST (PHPCS) |
 | VUL-005 | XSS — `PKPTemplateManager.inc.php` menghubungkan nilai `searchDescription` dan label field form ke HTML output tanpa `htmlspecialchars()`, membuka attack surface XSS luas | **A03** | CWE-79 | — | SAST (Manual) |
@@ -187,7 +187,7 @@ $$\text{Base Score} = \text{Roundup}(\min(4.31 + 2.27, 10)) = \mathbf{7.7}$$
 
 ### Kasus 2: SQL Injection Potential — VUL-003 (DAO.inc.php)
 
-**Skenario:** Method `getDataObjectSettings()` dan query DELETE di `lib/pkp/classes/db/DAO.inc.php` menginterpolasi `$tableName` dan `$idFieldName` langsung ke dalam SQL string tanpa parameterisasi. Meskipun `$idFieldValue` sudah menggunakan prepared statement (`?`), nama tabel dan kolom tidak bisa diparameterisasi via PDO, sehingga jika nilai ini berasal dari input eksternal, attacker bisa melakukan SQL Injection atau DROP TABLE.
+**Skenario:** Method `getDataObjectSettings()` dan query DELETE di `lib/pkp/classes/db/DAO.inc.php` menginterpolasi `$tableName` dan `$idFieldName` langsung ke dalam SQL string tanpa parameterisasi. Meskipun `$idFieldValue` sudah menggunakan prepared statement (`?`), nama tabel dan kolom tidak bisa diparameterisasi via PDO, sehingga jika nilai ini berasal dari input eksternal, attacker bisa melakukan SQL Injection atau DROP TABLE. Meskipun dampak potensialnya sangat tinggi, eksploitasi praktis bergantung pada kemampuan attacker untuk mengontrol parameter struktural query (seperti $tableName dan $idFieldName), yang tidak terbukti dapat dikendalikan secara langsung melalui input HTTP dalam pengujian DAST.
 
 **Bukti SAST (Manual Code Review):**
 ```php
@@ -447,6 +447,11 @@ INFO  (1)   |          |         |         |         | VUL-018  |
               VL (1)    L (2)    M (3)    H (4)    VH (5)
 ```
 
+Catatan:
+Beberapa kerentanan seperti VUL-003 dan VUL-006 tetap diklasifikasikan 
+dalam zona Critical meskipun memiliki likelihood rendah, karena dampaknya 
+bersifat sistemik (full data compromise atau RCE) jika kondisi eksploitasi terpenuhi.
+
 **Legenda Zona Risiko:**
 
 | Simbol | Zona | Kondisi | Temuan |
@@ -477,8 +482,9 @@ URLs affected:
   - http://10.34.100.179/index.php/index/$$$call$$$/grid/admin/languages/.../fetch-grid
   - http://10.34.100.179/index.php/jnads/$$$call$$$/grid/article-galleys/.../fetch-grid
 Parameters: _, publicationId, stageId, selectedFiles[0], reviewRoundId, submissionId
-Evidence: ZAP menyisipkan payload seperti ../../../../etc/passwd pada parameter tersebut
-          dan menerima response yang mengindikasikan traversal berhasil.
+Evidence: ZAP mendeteksi indikasi Path Traversal berdasarkan response pattern 
+          dan penggunaan payload seperti ../../../../etc/passwd. Namun, akses langsung 
+          ke file sensitif belum terkonfirmasi dalam pengujian ini..
 ```
 
 Dari sisi SAST, manual code review pada `SubmissionFileManager.inc.php` mengungkapkan IDOR (VUL-008) di mana `assocId` diambil dari objek `$submissionFile` tanpa memverifikasi apakah galley yang dirujuk benar-benar milik submission yang sama.
@@ -742,6 +748,23 @@ $ curl -b "ojsSession=..." \
 # → Jika berhasil: mendapatkan IAM role name
 # → Follow-up: fetch credential token → AWS credential takeover
 ```
+
+Adapun, beberapa kerentanan dalam sistem OJS saling memperkuat satu sama lain:
+
+1. XSS + Cookie Misconfiguration
+   VUL-005 (XSS) menjadi lebih berbahaya karena VUL-016 (cookie tanpa HttpOnly), 
+   memungkinkan attacker mencuri session melalui JavaScript.
+
+2. SSRF → Cloud Metadata Exposure
+   VUL-001 (SSRF) dapat digunakan untuk mengakses endpoint internal seperti 
+   169.254.169.254 pada cloud environment, berpotensi menghasilkan credential leakage.
+
+3. File Upload → Remote Code Execution
+   VUL-007 memungkinkan attacker mengupload file berbahaya (misalnya PHP shell) 
+   yang dapat dieksekusi jika server tidak dikonfigurasi dengan aman.
+
+Hal ini menunjukkan bahwa risiko sistem tidak hanya berasal dari satu kerentanan, 
+tetapi dari kombinasi beberapa kelemahan yang saling berinteraksi.
 
 ---
 
