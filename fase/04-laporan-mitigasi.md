@@ -511,12 +511,16 @@ Presentasi final (10–15 menit) harus mencakup slide berikut:
 ## 9. Pertanyaan Diskusi Final
 
 1. Jelaskan perbedaan antara **Fix** dan **Workaround** dalam konteks mitigasi kerentanan! Kapan workaround boleh digunakan?
+- Fix adalah perbaikan permanen yang menghilangkan akar penyebab kerentanan misalnya mengganti unserialize() dengan JSON atau menerapkan prepared statement. Workaround adalah tindakan sementara yang mengurangi risiko tanpa memperbaiki kodenya serperti misalnya mengaktifkan WAF atau memblokir endpoint via firewall .Workaround boleh digunakan ketika fix permanen membutuhkan waktu lama (misalnya menunggu patch vendor) kondisi darurat di mana risiko harus segera dikurangi atau ketika fix memerlukan downtime sistem yang tidak bisa dilakukan segera
 
 2. Jika Anda menemukan SQL Injection yang memungkinkan akses ke database, apakah Anda wajib melaporkan ke dosen / pemilik sistem sebelum melanjutkan eksploitasi? Jelaskan dari sudut pandang etika dan hukum!
+- Ya wajib. Dari sisi etika prinsip responsible disclosure mengharuskan peneliti melaporkan temuan ke pemilik sistem sebelum melanjutkan eksploitasi tujuan assessment adalah melindungi sistem, bukan mengeksploitasinya. Dari sisi hukum, di Indonesia UU ITE Pasal 30 melarang akses sistem elektronik tanpa izin. Meskipun assessment ini sudah ada izin dari dosen, izin tersebut memiliki batas scope — eksploitasi lebih jauh di luar scope yang disepakati tetap bisa dianggap pelanggaran. Dalam konteks kelas ini, Rules of Engagement sudah menetapkan bahwa eksploitasi destruktif dilarang.
 
 3. Mengapa **patch verification** penting dilakukan? Apa risiko jika mitigasi tidak diverifikasi?
+- Patch verification memastikan mitigasi benar-benar menutup celah, bukan hanya terlihat sudah diperbaiki. Risiko jika tidak diverifikasi: kerentanan bisa tetap aktif karena mitigasi salah implementasi, muncul regresi di mana patch merusak fitur lain, atau tim berasumsi sistem sudah aman padahal tidak — memberikan false sense of security yang justru berbahaya.
 
 4. Bagaimana cara menyampaikan temuan keamanan kepada rektor universitas yang tidak memiliki latar belakang teknis? Apa yang harus ditekankan?
+- Hindari istilah teknis. Fokus pada dampak bisnis dan risiko nyata, bukan detail teknis. Strukturnya: sampaikan fakta sederhana ("sistem jurnal universitas memiliki celah yang bisa dieksploitasi orang luar"), lalu jelaskan konsekuensinya dalam bahasa bisnis ("data naskah dan reviewer bisa dicuri, reputasi publikasi universitas bisa rusak, dan ada potensi sanksi regulasi"), kemudian berikan rekomendasi yang actionable dan estimasi waktu perbaikan. Yang harus ditekankan adalah urgensi, dampak reputasi, dan biaya risiko jika tidak segera ditangani.
 
 ---
 
