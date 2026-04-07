@@ -404,6 +404,8 @@ $this->retrieveRange(
 );
 ```
 
+[Hasil Manual Review Code](https://docs.google.com/document/d/1bw8--UDMVdueqNK3k_B-G-vorbtB9yNztBgeL8T8ZVk/edit?usp=sharing)
+
 ---
 
 ## 4. Dokumentasi Temuan Scanning
