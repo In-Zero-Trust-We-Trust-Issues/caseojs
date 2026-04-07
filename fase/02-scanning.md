@@ -273,6 +273,17 @@ semgrep --config "p/owasp-top-ten" \
   ./ojs-src
 ```
 
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/098f4ddd-697a-41ee-b317-ad5e54d9764c" />
+
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/4e9cfd46-9efc-466c-8657-8281fbe31006" />
+
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/2bf28e62-2c4b-4dd9-8514-120a400e9fa8" />
+
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/151e71fe-7a90-4601-ba94-b0c11c940736" />
+
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/670d5667-0a26-490a-aec6-1629a209aff8" />
+
+
 **Filter hasil yang relevan:**
 ```bash
 # Tampilkan hanya severity HIGH dan CRITICAL
@@ -287,6 +298,9 @@ for r in results[:20]:
     print()
 "
 ```
+
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/479d5a28-8a7e-4daf-b708-38693b4e7725" />
+
 
 **Custom rule — Deteksi `eval()` berbahaya:**
 
@@ -330,6 +344,12 @@ semgrep --config custom_rules.yaml \
   --json ./ojs-src
 ```
 
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/7f90e406-e4d5-4ecc-9a24-4c51d4c643be" />
+
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/74481b05-7dda-444d-94d1-db97e3b476de" />
+
+
+
 ---
 
 ### 3.3 phpcs-security-audit
@@ -346,6 +366,9 @@ phpcs --standard=Security \
 ```
 
 ---
+
+  <img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/3a5f0c06-d1e2-497a-b679-7688d7e7307d" />
+
 
 ### 3.4 Manual Code Review — Titik Fokus
 
@@ -427,11 +450,11 @@ Gunakan checklist ini untuk memastikan kelengkapan scanning:
 - [ ] Manual XSS test pada form search, profil, abstrak
 
 ### SAST Checklist
-- [ ] Semgrep dengan ruleset `p/php` selesai dijalankan
-- [ ] Semgrep dengan ruleset `p/owasp-top-ten` selesai dijalankan
-- [ ] Custom rules Semgrep dijalankan
-- [ ] Manual review pada 5 file kritis
-- [ ] Temuan deduplikasi (hapus false positive)
+- [v] Semgrep dengan ruleset `p/php` selesai dijalankan
+- [v] Semgrep dengan ruleset `p/owasp-top-ten` selesai dijalankan
+- [v] Custom rules Semgrep dijalankan
+- [v] Manual review pada 5 file kritis
+- [v] Temuan deduplikasi (hapus false positive)
 
 ---
 
