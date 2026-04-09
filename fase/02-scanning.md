@@ -521,14 +521,14 @@ $this->retrieveRange(
 Gunakan checklist ini untuk memastikan kelengkapan scanning:
 
 ### DAST Checklist
-- [ ] Nikto dijalankan dan output tersimpan
-- [ ] ZAP Spider dijalankan (minimal 100 URL terindeks)
-- [ ] ZAP Active Scan dijalankan (unauthenticated)
-- [ ] ZAP Active Scan dijalankan (authenticated sebagai Author)
-- [ ] ZAP Active Scan dijalankan (authenticated sebagai Admin)
-- [ ] SQLMap dijalankan pada minimal 3 parameter
-- [ ] SSRF test dilakukan pada CVE-2021-27188
-- [ ] Manual XSS test pada form search, profil, abstrak
+- [x] Nikto dijalankan dan output tersimpan
+- [x] ZAP Spider dijalankan (minimal 100 URL terindeks)
+- [x] ZAP Active Scan dijalankan (unauthenticated)
+- [x] ZAP Active Scan dijalankan (authenticated sebagai Author)
+- [x] ZAP Active Scan dijalankan (authenticated sebagai Admin)
+- [x] SQLMap dijalankan pada minimal 3 parameter
+- [x] SSRF test dilakukan pada CVE-2021-27188
+- [x] Manual XSS test pada form search, profil, abstrak
 
 ### SAST Checklist
 - [v] Semgrep dengan ruleset `p/php` selesai dijalankan
