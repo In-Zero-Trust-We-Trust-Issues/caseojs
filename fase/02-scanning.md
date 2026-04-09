@@ -65,6 +65,8 @@ nikto -h http://<IP-VPS>/ojs \
   -Format html
 ```
 
+
+
 **Tuning flags yang relevan:**
 
 | Flag | Keterangan |
@@ -88,6 +90,20 @@ nikto -h http://<IP-VPS>/ojs \
 ```
 
 > **Tugas:** Jalankan Nikto dan dokumentasikan semua temuan dalam tabel. Screenshot output wajib disertakan.
+### Ringkasan Temuan per Kategori
+
+| Kategori | Jumlah |
+| :--- | :---: |
+| Directory Indexing | 6 |
+| Missing Security Header | 6 |
+| Info Disclosure | 3 |
+| Interesting Path | 4 |
+| robots.txt Issue | 2 |
+| Outdated Software | 1 |
+| Deprecated Header | 1 |
+| **Total** | **23** |
+
+<img width="1906" height="682" alt="Cuplikan layar 2026-04-06 202907" src="https://github.com/user-attachments/assets/c213e98a-8e73-4c1e-a524-a1d793aac2bb" />
 
 ---
 
@@ -151,7 +167,31 @@ ZAP → Sites → Klik kanan http://<IP-VPS> →
   - Logged-in Indicator: .*Dashboard.*
 ```
 
----
+---<img width="1894" height="1020" alt="Cuplikan layar 2026-04-07 092841" src="https://github.com/user-attachments/assets/14c2bc2d-2af1-44c8-a293-7d7b09f5d167" />
+
+### Daftar Temuan Keamanan (Vulnerability Report)
+
+| Alert | Risk | Count | URL (Sampel) | Parameter |
+| :--- | :---: | :---: | :--- | :--- |
+| **Path Traversal** | <span style="color:red">High</span> | 33 | `http://10.34.100.179/index.php/index/$$$call$$$/grid/admin/languages/.../fetch-grid?_=fetch-grid` <br><br> `http://10.34.100.179/index.php/jnads/$$$call$$$/grid/article-galleys/.../fetch-grid` | _, publicationId, stageId, selectedFiles[0], reviewRoundId, decision, orcid, requestOptions[...], submissionId |
+| **Vulnerable JS Library** | <span style="color:red">High</span> | 2 | `http://10.34.100.179/js/build.js?v=3.3.0.8` <br><br> `http://10.34.100.179/lib/pkp/js/lib/jquery/plugins/validate/jquery.validate.min.js?v=3.3.0.8` | - |
+| **Content Security Policy (CSP) Header Not Set** | <span style="color:orange">Medium</span> | 5 | `http://10.34.100.179/index.php/jnads/login` <br> `http://10.34.100.179/index.php/jnads/management/settings/access` | - |
+| **Cross-Domain Misconfiguration** | <span style="color:orange">Medium</span> | 5 | `http://10.34.100.179/index.php/jnads/api/v1/submissions/5/files` <br> `http://10.34.100.179/index.php/jnads/api/v1/submissions/5/files/10?stageId=1` | - |
+| **Missing Anti-clickjacking Header** | <span style="color:orange">Medium</span> | 5 | `http://10.34.100.179/index.php/jnads/login` <br> `http://10.34.100.179/index.php/jnads/management/settings/access` | x-frame-options |
+| **Vulnerable JS Library (Plupload)** | <span style="color:orange">Medium</span> | 1 | `http://10.34.100.179/lib/pkp/lib/vendor/moxiecode/plupload/js/plupload.full.min.js?v=3.3.0.8` | - |
+| **Application Error Disclosure** | <span style="color:blue">Low</span> | 1 | `http://10.34.100.179/index.php/jnads/login` | - |
+| **Cookie No HttpOnly Flag** | <span style="color:blue">Low</span> | 5 | `http://10.34.100.179/index.php/jnads/login/signIn` <br> `http://10.34.100.179/index.php/jnads/management/settings/access` | OJSSID |
+| **Cookie without SameSite Attribute** | <span style="color:blue">Low</span> | 5 | `http://10.34.100.179/index.php/jnads/login/signIn` <br> `http://10.34.100.179/index.php/jnads/management/settings/access` | OJSSID |
+| **In Page Banner Information Leak** | <span style="color:blue">Low</span> | 5 | `.../noto-sans-v11-...-700.woff` <br> `.../noto-sans-v11-...-700.woff2` | - |
+| **Server Leaks Version Info via HTTP Header** | <span style="color:blue">Low</span> | 5 | `http://10.34.100.179/index.php/jnads/login` | - |
+| **X-Content-Type-Options Header Missing** | <span style="color:blue">Low</span> | 5 | `http://10.34.100.179/index.php/jnads/login` | x-content-type-options |
+| **Authentication Request Identified** | Info | 2 | `http://10.34.100.179/index.php/jnads/login` | username |
+| **Info Disclosure – Sensitive Info in URL** | Info | 4 | `.../edit-user?gridId=...&rowId=2` <br> `.../fetch-grid?oldUserId=...` | grid-settings-user-usergridItemsPerPage, oldUserId |
+| **Info Disclosure – Suspicious Comments** | Info | 5 | `http://10.34.100.179/js/build.js?v=3.3.0.8` | - |
+| **Modern Web Application** | Info | 5 | `http://10.34.100.179/index.php/jnads/login` | - |
+| **Session Management Response Identified** | Info | 171 | `http://10.34.100.179/index.php/jnads/login/signIn` | OJSSID |
+| **User Controllable HTML Element Attribute** | Info | 3 | `http://10.34.100.179/index.php/jnads/login` | username, csrfToken |
+
 
 ### 2.4 SQLMap — SQL Injection Testing
 
@@ -198,6 +238,40 @@ sqlmap -r request.txt \
 [*] ojs_db
 ```
 
+<img width="1445" height="620" alt="Cuplikan layar 2026-04-06 210120" src="https://github.com/user-attachments/assets/a2b49982-f613-4539-9805-8f7067b64df4" />
+<img width="1473" height="135" alt="Cuplikan layar 2026-04-06 210651" src="https://github.com/user-attachments/assets/c3299d70-33d2-4134-87d6-687f6201d240" />
+
+### SQL Injection Testing: Identifikasi Parameter Rentan (ZAP/Nikto)
+
+#### **Ringkasan Hasil**
+> **Hasil Utama:** Tidak ditemukan kerentanan SQL Injection. Semua parameter `POST` yang diuji tidak terbukti dapat dieksploitasi (*not injectable*).
+
+#### **Detail Parameter yang Diuji**
+
+| Parameter | Dinamis | Injectable |
+| :--- | :---: | :---: |
+| `username` | Tidak | **Tidak** |
+| `password` | Tidak | **Tidak** |
+| `remember` | Tidak | **Tidak** |
+
+
+<img width="1456" height="476" alt="Cuplikan layar 2026-04-06 210746" src="https://github.com/user-attachments/assets/d8bc32cf-58a8-4f43-b467-5968751a2e56" />
+<img width="1462" height="152" alt="Cuplikan layar 2026-04-06 210809" src="https://github.com/user-attachments/assets/79af3521-e085-49a5-b5db-349198e57f8a" />
+
+
+### SQL Injection Testing: Test Parameter GET (Search)
+
+#### **Ringkasan Hasil**
+> **Hasil Utama:** Tidak ditemukan indikasi SQL Injection. Seluruh parameter yang diuji tidak terbukti dapat dieksploitasi (*not injectable*).
+
+#### **Detail Parameter yang Diuji**
+
+| Parameter | Hasil |
+| :--- | :--- |
+| `GET: query` | **Not injectable** |
+| `User-Agent` | **Not injectable** |
+| `Referer` | **Not injectable** |
+
 ---
 
 ### 2.5 SSRF — Testing CVE-2021-27188
@@ -223,6 +297,11 @@ curl -b "session_cookie=<nilai>" \
 curl -v "http://<IP-VPS>/ojs/index.php/index/login?source=http://127.0.0.1:3306"
 ```
 
+<img width="1236" height="99" alt="Cuplikan layar 2026-04-06 211646" src="https://github.com/user-attachments/assets/c05ded47-09af-4d74-a30e-a6b0e54eb6b5" />
+
+<img width="1919" height="865" alt="Cuplikan layar 2026-04-06 211546" src="https://github.com/user-attachments/assets/854b5d2c-7d00-4c1b-8189-661beca8b0dd" />
+
+Screenshot halaman webhook.site yang menampilkan request masuk menunjukkan bahwa SSRF berhasil di-trigger
 ---
 
 ## 3. SAST — Static Application Security Testing
